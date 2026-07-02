@@ -111,6 +111,13 @@ function requireAuth(req, res, next) {
 
 // --- Auth API -------------------------------------------------------------
 
+// Public (pre-auth) config the dashboard needs to build demo links. When
+// PORTAL_DEMO_DOMAIN is set (e.g. "secnerd.io"), the hub links to
+// https://<subdomain>.<domain>/ so all demos ride one Cloudflare tunnel.
+app.get('/api/portal-config', (_req, res) => {
+  res.json({ demoDomain: process.env.PORTAL_DEMO_DOMAIN || null });
+});
+
 app.get('/api/session', (req, res) => {
   const session = currentSession(req);
   const auth = loadAuth();

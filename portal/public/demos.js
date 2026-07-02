@@ -1,16 +1,20 @@
 /**
  * Demo catalog for the TrendAI Demo Platform hub.
  *
- * Each entry is rendered as a read-only shortcut card. Links are built at
- * runtime from the browser's current hostname + the tool's published port,
- * so the platform works unchanged on localhost, a lab VM, or a server IP.
+ * Link building (see dashboard.html):
+ *   - If the portal is configured with a demo base domain (PORTAL_DEMO_DOMAIN,
+ *     e.g. "secnerd.io"), each card links to https://<subdomain>.<domain>/ —
+ *     i.e. a single Cloudflare tunnel with one public hostname per demo.
+ *   - Otherwise it falls back to the browser's hostname + the tool's published
+ *     port (works on localhost, a lab VM, a server IP, or an SSH tunnel).
  *
  * `protocol` / `port` must match the host mappings in the top-level
- * docker-compose.yml.
+ * docker-compose.yml; `subdomain` must match the Cloudflare Public Hostname.
  */
 window.TRENDAI_DEMOS = [
   {
     id: 'v1fs',
+    subdomain: 'v1fs',
     title: 'V1 File Security Scanner',
     subtitle: 'File Security · Malware Scanning',
     protocol: 'http',
@@ -28,6 +32,7 @@ window.TRENDAI_DEMOS = [
   },
   {
     id: 'ai-security',
+    subdomain: 'ai',
     title: 'AI Security — Health AI Assistant',
     subtitle: 'AI Guard · Prompt Security',
     protocol: 'http',
@@ -46,6 +51,7 @@ window.TRENDAI_DEMOS = [
   },
   {
     id: 'app-sec-file-sec',
+    subdomain: 'appsec',
     title: 'App & File Security',
     subtitle: 'Secure Upload Pipeline',
     protocol: 'http',
@@ -64,6 +70,7 @@ window.TRENDAI_DEMOS = [
   },
   {
     id: 'smish',
+    subdomain: 'smish',
     title: 'Smish Detector',
     subtitle: 'Smishing Awareness · Education',
     protocol: 'https',

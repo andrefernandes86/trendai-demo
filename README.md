@@ -186,6 +186,34 @@ If you reach the platform over SSH port-forwarding, forward each demo port too
 
 ---
 
+## Serving all demos through one Cloudflare tunnel
+
+Behind a corporate proxy, only standard HTTPS (443) gets through — the raw demo
+ports (8081, 8000, 8443, 3003) don't. To expose everything over 443, give each
+demo its own hostname on a **single** Cloudflare tunnel (one `cloudflared`
+container):
+
+1. In the Cloudflare Zero Trust dashboard → your tunnel → **Public Hostnames**,
+   add one entry per demo (DNS is auto-created for domains on Cloudflare):
+
+   | Public hostname | Service (origin) | Notes |
+   |-----------------|------------------|-------|
+   | `trendai.<domain>` | `http://<host-ip>:8088` | portal |
+   | `v1fs.<domain>`    | `http://<host-ip>:8081` | |
+   | `appsec.<domain>`  | `http://<host-ip>:8000` | |
+   | `smish.<domain>`   | `https://<host-ip>:8443` | enable **No TLS Verify** (self-signed) |
+   | `ai.<domain>`      | `http://<host-ip>:3003` | frontend only — see note |
+
+2. Set `PORTAL_DEMO_DOMAIN=<domain>` in `.env` and recreate the portal. The hub
+   then links to `https://<subdomain>.<domain>/` instead of `host:port`. The
+   subdomains are defined in `portal/public/demos.js`.
+
+> **AI Security app caveat:** its React frontend calls its backend services by
+> `host:port` from the browser, so a single `ai.<domain>` hostname loads the UI
+> but its API calls won't traverse Cloudflare without additionally exposing the
+> API gateway and reconfiguring the app. The other three demos are single
+> containers and work fully over their subdomain.
+
 ## Resetting the portal password
 
 The password lives only in the `portal_data` volume. To return to the default

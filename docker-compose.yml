@@ -32,6 +32,10 @@ services:
     environment:
       PORTAL_PORT: "3000"
       PORTAL_DATA_DIR: /data
+      # When set (e.g. "secnerd.io"), demo shortcuts link to
+      # https://<subdomain>.<domain>/ so every demo rides one Cloudflare tunnel.
+      # Leave empty to link by host:port (localhost / VM / SSH tunnel).
+      PORTAL_DEMO_DOMAIN: ${PORTAL_DEMO_DOMAIN:-}
     volumes:
       - portal_data:/data
     restart: unless-stopped
