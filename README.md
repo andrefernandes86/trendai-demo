@@ -1,6 +1,6 @@
 # TrendAI Demo Platform
 
-A self-contained, Trend Vision One–branded demo hub. It presents a single
+A self-contained, TrendAI Vision One–branded demo hub. It presents a single
 **login-gated landing page** whose only function is to launch a set of
 **demo environments**, each shipped as its own Docker container and documented
 with a short "how to demo" script.
@@ -135,8 +135,8 @@ path, only after logging in.
 | Demo | Container | Path (behind login) | Purpose |
 |------|-----------|---------------------|---------|
 | **Portal** | `portal` | `/` | Login gate + demo hub + reverse proxy (this app) |
-| **V1 File Security Scanner** | `v1fs-scanner` | `/v1fs` | On-demand malware scanning via the Vision One File Security SDK; PDF reports |
-| **App & File Security** | `app-sec` | `/appsec` | File-upload security pipeline scanning uploads through the Vision One SDK |
+| **TrendAI Vision One File Security** | `v1fs-scanner` | `/v1fs` | Use case: scan file servers / network shares for malware via the File Security SDK; PDF reports |
+| **TrendAI Vision One AI Guard & File Security** | `app-sec` + `ollama` | `/appsec` | Use case: an AI chatbot with file uploads — AI Guard screens prompts, File Security scans files |
 | **Smish Detector** | `smish` | `/smish` | Smishing (SMS phishing) awareness demo |
 
 Each demo's live "how to run it" script is shown directly on its card in the portal.
@@ -158,10 +158,14 @@ Each demo's live "how to run it" script is shown directly on its card in the por
 The demos **start** without any keys; the Vision One / AI features simply stay
 inert until configured.
 
-- **V1 File Security Scanner** — enter your Vision One File Security **API key +
-  region** in the tool's own Settings UI (persisted to its volume).
-- **App & File Security** — a Vision One File Security API key, and optionally an
-  **Ollama** endpoint for AI-assisted verdicts. See `tools/app-sec-file-sec`.
+- **TrendAI Vision One File Security** — enter your Vision One File Security
+  **API key + region** in the tool's own Settings UI (persisted to its volume).
+- **TrendAI Vision One AI Guard & File Security** — a bundled **Ollama**
+  container (model `gemma2:2b`, CPU) is included and pre-wired at
+  `http://ollama:11434`, so the chatbot works out of the box. Enter your Vision
+  One **AI Guard** and **File Security** API keys in Settings to enable
+  detection. Override the model with `OLLAMA_MODEL` (e.g. `llama3.2:1b` for a
+  faster CPU response) in `.env`.
 - **Smish Detector** — none. Report password defaults to `sms`
   (`REPORT_PASSWORD` in `.env`). Educational use, controlled environments only.
 
@@ -206,8 +210,8 @@ trendai-demo/
 │   ├── Dockerfile
 │   └── public/                #   login / change-password / dashboard + demos.js
 └── tools/                     # vendored copies of each demo application
-    ├── v1fs-manual-scan/      #   Trend Vision One File Security scanner (Go)
-    ├── app-sec-file-sec/      #   App & File Security upload pipeline (FastAPI)
+    ├── v1fs-manual-scan/      #   TrendAI Vision One File Security scanner (Go)
+    ├── app-sec-file-sec/      #   AI Guard & File Security chatbot (FastAPI + Ollama)
     └── sms-dl/                #   Smish Detector (Flask)
 ```
 

@@ -8,7 +8,7 @@
 #
 #   http://<host>:8088/          login gate (default admin / admin)
 #   http://<host>:8088/v1fs      V1 File Security Scanner   (auth required)
-#   http://<host>:8088/appsec    App & File Security        (auth required)
+#   http://<host>:8088/appsec    AI Guard & File Security   (auth required)
 #   http://<host>:8088/smish     Smish Detector             (auth required)
 #
 # The demo containers are NOT published on the host — they are only reachable
@@ -45,7 +45,7 @@ services:
       - v1fs_data:/data
     restart: unless-stopped
 
-  # --- App & File Security (FastAPI) — internal only ----------------------
+  # --- AI Guard & File Security (FastAPI chatbot) — internal only ----------
   app-sec:
     build:
       context: ./tools/app-sec-file-sec
@@ -53,6 +53,34 @@ services:
     container_name: trendai-app-sec
     environment:
       EXT_PORT: "8000"
+      # Pre-point the chatbot at the bundled Ollama container so the demo works
+      # out of the box (the presenter still enters the Vision One API keys).
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma2:2b}
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  # --- Ollama LLM (CPU) — internal only -----------------------------------
+  # Serves a small CPU-friendly model for the AI Guard chatbot demo. On first
+  # start it pulls the model into the ollama_data volume (one-time download).
+  ollama:
+    image: ollama/ollama:latest
+    container_name: trendai-ollama
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma2:2b}
+      OLLAMA_KEEP_ALIVE: "24h"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        ollama serve &
+        until ollama list >/dev/null 2>&1; do sleep 1; done
+        echo "Pulling $${OLLAMA_MODEL}…"
+        ollama pull "$${OLLAMA_MODEL}" || true
+        wait
+    volumes:
+      - ollama_data:/root/.ollama
     restart: unless-stopped
 
   # --- Smish Detector (Flask, HTTPS/self-signed) — internal only ----------
@@ -72,3 +100,4 @@ volumes:
   v1fs_data:
   smish_data:
   smish_ssl:
+  ollama_data:
