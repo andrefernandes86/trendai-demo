@@ -266,7 +266,12 @@ app.get('/healthz', (_req, res) => res.json({ ok: true }));
 // Static assets (css/js/svg). No directory listing; pages are routed above.
 // The portal's own files (styles.css, logo.svg, demos.js) are served here;
 // anything not found falls through to the demo proxy / catch-all below.
-app.use(express.static(PUBLIC_DIR, { index: false, extensions: [] }));
+app.use(express.static(PUBLIC_DIR, {
+  index: false,
+  extensions: [],
+  // Always revalidate so a rebuilt portal never serves a stale hub/demos.js.
+  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+}));
 
 // --- Demo reverse proxy (auth-gated) --------------------------------------
 // /v1fs, /appsec, /smish -> the demo backends, with the prefix stripped from
