@@ -22,6 +22,83 @@ demo shortcuts and instructions — there is no content-editing surface.
 
 ---
 
+## Installing Docker & Docker Compose
+
+You need **Docker Engine** and the **Compose v2 plugin (v2.20+)**. Modern Docker
+ships Compose as the `docker compose` subcommand (note: the space — not the old
+`docker-compose` binary). Check what you have:
+
+```bash
+docker --version
+docker compose version   # must be v2.20 or newer
+```
+
+### Linux — Ubuntu / Debian (recommended for a lab VM/server)
+
+Install Docker Engine + Compose plugin from Docker's official repository:
+
+```bash
+# 1. Remove any distro-shipped old versions
+sudo apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
+
+# 2. Set up Docker's apt repository
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 3. Install Engine, CLI, and the Compose plugin
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# 4. Run docker without sudo (log out/in afterwards for it to take effect)
+sudo usermod -aG docker $USER
+
+# 5. Enable + start the daemon
+sudo systemctl enable --now docker
+```
+
+> **RHEL / CentOS / Rocky / Fedora:** same flow using the `yum`/`dnf` repo — see
+> <https://docs.docker.com/engine/install/> and pick your distro.
+
+### macOS
+
+Install **Docker Desktop** (bundles Engine + Compose v2):
+
+```bash
+brew install --cask docker      # or download from docker.com
+open -a Docker                  # start Docker Desktop, wait for it to say "running"
+```
+
+### Windows
+
+Install **Docker Desktop** with the WSL 2 backend:
+
+```powershell
+winget install Docker.DockerDesktop
+```
+
+Then launch Docker Desktop and wait until it reports it's running. Run the
+`docker compose` commands below from **WSL** or PowerShell.
+
+### Verify
+
+```bash
+docker run --rm hello-world     # confirms the daemon works
+docker compose version          # confirms Compose v2.20+
+```
+
+If `docker compose version` reports something older than v2.20 (common on
+distro-packaged Docker), install the Compose plugin from Docker's official repo
+as shown in the Linux steps above.
+
+---
+
 ## Quick start
 
 Requires **Docker** and **Docker Compose v2.20+** (for the `include:` directive).
