@@ -155,6 +155,12 @@ function markActiveApp(proxyRes, _req, res, name) {
     const prev = proxyRes.headers['set-cookie'] || [];
     proxyRes.headers['set-cookie'] = [].concat(prev, `x_app=${name}; Path=/; SameSite=Lax`);
   }
+  // Stop Cloudflare/browsers caching demo assets so a redeploy is seen
+  // immediately (the demo apps serve their own long-cached css/js otherwise).
+  proxyRes.headers['cache-control'] = 'no-store, no-cache, must-revalidate';
+  delete proxyRes.headers['etag'];
+  delete proxyRes.headers['last-modified'];
+  delete proxyRes.headers['expires'];
 }
 
 function makeProxy(name) {
