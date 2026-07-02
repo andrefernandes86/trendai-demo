@@ -39,6 +39,11 @@
   <script src="/demos.js?v=3"></script>
   <script>
     const CATEGORIES = ['Demo Tools', 'Business Tools', 'Other'];
+    const SIDENAV_SUB = {
+      'Demo Tools': 'Live product demos',
+      'Business Tools': 'Sales & sizing utilities',
+      'Other': 'Additional tools',
+    };
     const BLURBS = {
       'Demo Tools': 'Live product demos. Each card includes a short script for running it, and opens on this same site behind your login.',
       'Business Tools': 'Internal business and sales utilities.',
@@ -80,12 +85,14 @@
 
     function renderSidenav() {
       const nav = document.getElementById('sidenav');
-      nav.innerHTML = '';
-      CATEGORIES.forEach((cat) => {
+      nav.innerHTML = '<div class="sidenav-title">Tool Categories</div>';
+      CATEGORIES.forEach((cat, i) => {
         const count = demosIn(cat).length;
         const btn = document.createElement('button');
         btn.className = 'sidenav-item' + (cat === activeCategory ? ' active' : '');
-        btn.innerHTML = `<span>${cat}</span><span class="count">${count}</span>`;
+        btn.innerHTML = `
+          <div class="step-num">${i + 1}</div>
+          <div class="step-label">${cat}<span class="count">${count}</span><span class="step-sub">${SIDENAV_SUB[cat] || ''}</span></div>`;
         btn.addEventListener('click', () => { activeCategory = cat; renderSidenav(); renderGrid(); });
         nav.appendChild(btn);
       });
