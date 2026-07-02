@@ -10,6 +10,7 @@
 #   http://<host>:8088/v1fs      V1 File Security Scanner   (auth required)
 #   http://<host>:8088/appsec    AI Guard & File Security   (auth required)
 #   http://<host>:8088/smish     Smish Detector             (auth required)
+#   http://<host>:8088/siemcalc  Agentic SIEM Calculator    (auth required)
 #
 # The demo containers are NOT published on the host — they are only reachable
 # on the internal compose network via the authenticated portal.
@@ -34,6 +35,7 @@ services:
       - v1fs-scanner
       - app-sec
       - smish
+      - siem-calc
     restart: unless-stopped
 
   # --- V1 File Security Scanner (Go) — internal only ----------------------
@@ -81,6 +83,13 @@ services:
         wait
     volumes:
       - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  # --- Agentic SIEM Sizing Calculator (nginx SPA) — internal only ---------
+  siem-calc:
+    build:
+      context: ./tools/siem-calculator
+    container_name: trendai-siem-calc
     restart: unless-stopped
 
   # --- Smish Detector (Flask, HTTPS/self-signed) — internal only ----------

@@ -1,9 +1,9 @@
-# TrendAI Demo Platform
+# TrendAI Tools
 
-A self-contained, TrendAI Vision One–branded demo hub. It presents a single
-**login-gated landing page** whose only function is to launch a set of
-**demo environments**, each shipped as its own Docker container and documented
-with a short "how to demo" script.
+A self-contained, TrendAI Vision One–branded tools hub. It presents a single
+**login-gated landing page** with a side menu (**Demo Tools · Business Tools ·
+Other**) that launches a set of **tools**, each shipped as its own Docker
+container and documented with a short "how to demo" script.
 
 The platform is intentionally read-only: once signed in, a presenter sees the
 demo shortcuts and instructions — there is no content-editing surface.
@@ -138,6 +138,7 @@ path, only after logging in.
 | **TrendAI Vision One File Security** | `v1fs-scanner` | `/v1fs` | Use case: scan file servers / network shares for malware via the File Security SDK; PDF reports |
 | **TrendAI Vision One AI Guard & File Security** | `app-sec` + `ollama` | `/appsec` | Use case: an AI chatbot with file uploads — AI Guard screens prompts, File Security scans files |
 | **Smish Detector** | `smish` | `/smish` | Smishing (SMS phishing) awareness demo |
+| **Agentic SIEM Sizing Calculator** | `siem-calc` | `/siemcalc` | Credit-sizing wizard for Vision One Agentic SIEM (under **Other**) |
 
 Each demo's live "how to run it" script is shown directly on its card in the portal.
 
@@ -212,7 +213,8 @@ trendai-demo/
 └── tools/                     # vendored copies of each demo application
     ├── v1fs-manual-scan/      #   TrendAI Vision One File Security scanner (Go)
     ├── app-sec-file-sec/      #   AI Guard & File Security chatbot (FastAPI + Ollama)
-    └── sms-dl/                #   Smish Detector (Flask)
+    ├── sms-dl/                #   Smish Detector (Flask)
+    └── siem-calculator/       #   Agentic SIEM Sizing Calculator (nginx SPA)
 ```
 
 Each folder under `tools/` is a copy of its upstream repository, kept intact so

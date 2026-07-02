@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TrendAI Demo Platform</title>
+  <title>TrendAI Tools</title>
   <link rel="icon" href="/logo.svg" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -12,8 +12,8 @@
     <div class="brand">
       <img src="/logo.svg" width="40" height="40" alt="" />
       <div>
-        <div class="name">Trend<span class="ai">AI</span></div>
-        <div class="tag">Demo Platform</div>
+        <div class="name">Trend<span class="ai">AI</span> Tools</div>
+        <div class="tag">Sales enablement &amp; demonstration</div>
       </div>
     </div>
     <div class="right">
@@ -22,28 +22,39 @@
     </div>
   </header>
 
-  <section class="hero">
-    <h1>Demo Environments</h1>
-    <p>Launch any TrendAI Vision One demo below. Each card includes a short script for running the demo live. Links open the running demo container on this host.</p>
-  </section>
+  <div class="layout">
+    <aside class="sidenav" id="sidenav"></aside>
 
-  <div class="banner"><div class="inner" id="hostBanner"></div></div>
+    <div class="content">
+      <section class="hero">
+        <h1 id="catTitle">Demo Tools</h1>
+        <p id="catBlurb">Launch any tool below. Each card includes a short script for running it live; it opens on this same site, behind your login.</p>
+      </section>
+      <main class="grid" id="grid"></main>
+    </div>
+  </div>
 
-  <main class="grid" id="grid"></main>
+  <footer class="foot">TrendAI Tools · For sales enablement &amp; demonstration use.</footer>
 
-  <footer class="foot">TrendAI Demo Platform · TrendAI Vision One · For sales enablement &amp; demonstration use.</footer>
-
-  <script src="/demos.js?v=2"></script>
+  <script src="/demos.js?v=3"></script>
   <script>
-    // --- SVG icons -------------------------------------------------------
+    const CATEGORIES = ['Demo Tools', 'Business Tools', 'Other'];
+    const BLURBS = {
+      'Demo Tools': 'Live product demos. Each card includes a short script for running it, and opens on this same site behind your login.',
+      'Business Tools': 'Internal business and sales utilities.',
+      'Other': 'Additional tools and calculators.',
+    };
+
     const ICONS = {
       shield: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
       ai: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8M9 14h.01M15 14h.01"/></svg>',
       file: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>',
       phone: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>',
+      calc: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14v4M8 18h4"/></svg>',
     };
 
-    // --- Session guard ---------------------------------------------------
+    let activeCategory = 'Demo Tools';
+
     async function guard() {
       try {
         const res = await fetch('/api/session');
@@ -58,19 +69,43 @@
       }
     }
 
+    function demosIn(category) {
+      return (window.TRENDAI_DEMOS || []).filter((d) => (d.category || 'Other') === category);
+    }
+
     function buildUrl(demo) {
-      // Every demo is proxied by the portal on this same origin, under its path.
+      // Every tool is proxied by the portal on this same origin, under its path.
       return window.location.origin + demo.path + '/';
     }
 
-    function render() {
-      const grid = document.getElementById('grid');
-      document.getElementById('hostBanner').textContent =
-        'Each demo opens on this same site (' + window.location.host + ') and stays behind your login.';
+    function renderSidenav() {
+      const nav = document.getElementById('sidenav');
+      nav.innerHTML = '';
+      CATEGORIES.forEach((cat) => {
+        const count = demosIn(cat).length;
+        const btn = document.createElement('button');
+        btn.className = 'sidenav-item' + (cat === activeCategory ? ' active' : '');
+        btn.innerHTML = `<span>${cat}</span><span class="count">${count}</span>`;
+        btn.addEventListener('click', () => { activeCategory = cat; renderSidenav(); renderGrid(); });
+        nav.appendChild(btn);
+      });
+    }
 
-      (window.TRENDAI_DEMOS || []).forEach((d) => {
+    function renderGrid() {
+      const grid = document.getElementById('grid');
+      document.getElementById('catTitle').textContent = activeCategory;
+      document.getElementById('catBlurb').textContent = BLURBS[activeCategory] || '';
+      grid.innerHTML = '';
+
+      const items = demosIn(activeCategory);
+      if (!items.length) {
+        grid.innerHTML = '<div class="empty-state">No tools in this section yet.</div>';
+        return;
+      }
+
+      items.forEach((d) => {
         const url = buildUrl(d);
-        const stepsHtml = d.steps.map((s) => `<li>${s}</li>`).join('');
+        const stepsHtml = (d.steps || []).map((s) => `<li>${s}</li>`).join('');
         const tagsHtml = (d.tags || []).map((t) => `<span class="tag">${t}</span>`).join('');
         const noteHtml = d.note ? `<p class="desc" style="margin-top:10px;color:var(--warn)">⚠ ${d.note}</p>` : '';
         const card = document.createElement('div');
@@ -87,8 +122,7 @@
             <ol>${stepsHtml}</ol>
           </details>
           <div class="actions">
-            <a class="open-btn" href="${url}" target="_blank" rel="noopener">Open demo ↗</a>
-            <span class="port">:${d.port}</span>
+            <a class="open-btn" href="${url}" target="_blank" rel="noopener">Open ↗</a>
           </div>`;
         grid.appendChild(card);
       });
@@ -101,7 +135,9 @@
 
     (async () => {
       const s = await guard();
-      if (s) render();
+      if (!s) return;
+      renderSidenav();
+      renderGrid();
     })();
   </script>
 </body>

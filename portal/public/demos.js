@@ -1,16 +1,19 @@
 /**
- * Demo catalog for the TrendAI Demo Platform hub.
+ * Tool catalog for TrendAI Tools.
  *
- * Every demo is served on the SAME origin as the portal, under its `path`
+ * Every tool is served on the SAME origin as the portal, under its `path`
  * (e.g. https://trendai.secnerd.io/v1fs). The portal reverse-proxies each path
- * to the demo container and requires a valid login session first, so a single
+ * to the tool container and requires a valid login session first, so a single
  * Cloudflare hostname fronts everything and nothing is reachable unauthenticated.
  *
- * `path` must match a demo prefix registered in portal/server.js (DEMOS).
+ * `path`     must match a prefix registered in portal/server.js (DEMOS).
+ * `category` groups the card under a side-menu section:
+ *            'Demo Tools' | 'Business Tools' | 'Other'.
  */
 window.TRENDAI_DEMOS = [
   {
     id: 'v1fs',
+    category: 'Demo Tools',
     path: '/v1fs',
     title: 'TrendAI Vision One File Security',
     subtitle: 'Use Case · Scan File Servers with the SDK',
@@ -27,6 +30,7 @@ window.TRENDAI_DEMOS = [
   },
   {
     id: 'app-sec-file-sec',
+    category: 'Demo Tools',
     path: '/appsec',
     title: 'TrendAI Vision One AI Guard & File Security',
     subtitle: 'Use Case · Securing an AI Chatbot with File Uploads',
@@ -45,6 +49,7 @@ window.TRENDAI_DEMOS = [
   },
   {
     id: 'smish',
+    category: 'Demo Tools',
     path: '/smish',
     title: 'Smish Detector',
     subtitle: 'Smishing Awareness · Education',
@@ -59,5 +64,22 @@ window.TRENDAI_DEMOS = [
     ],
     tags: ['Awareness', 'Smishing', 'Educational Use Only'],
     note: 'Educational use only, in controlled environments.',
+  },
+  {
+    id: 'siemcalc',
+    category: 'Other',
+    path: '/siemcalc',
+    title: 'TrendAI Agentic SIEM Sizing Calculator',
+    subtitle: 'Sizing · Credit Calculator',
+    icon: 'calc',
+    desc: 'A 6-phase sizing wizard that calculates annual credit requirements for TrendAI Vision One — Agentic SIEM. Walks through log ingestion, endpoint/cloud, email/network, and CREM risk events, with a live totals sidebar and a year-by-year breakdown.',
+    steps: [
+      'Click Open to launch the sizing wizard.',
+      'Work through the 6 phases, entering unit counts, GB/day, and retention periods.',
+      'Watch the live totals sidebar update credits as you type.',
+      'On the Results step, review the grand total and year-by-year table.',
+      'Export a clean, print-ready PDF report to share with the customer.',
+    ],
+    tags: ['Agentic SIEM', 'Sizing', 'Credits'],
   },
 ];
