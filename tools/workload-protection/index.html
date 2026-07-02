@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TrendAI Vision One — Server &amp; Workload Protection</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --bg-2: #2d2d44;
+    --card: #252540;
+    --border: #4a4a6a;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --red: #d71921;
+    --red-dark: #a01218;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(215, 25, 33, 0.18), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(215, 25, 33, 0.10), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  a { color: inherit; }
+
+  header.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 3px solid var(--red);
+    background: linear-gradient(135deg, #1a0408 0%, var(--bg) 60%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .logo {
+    width: 40px; height: 40px; flex-shrink: 0;
+  }
+  .brand .name { font-size: 20px; font-weight: 700; letter-spacing: 0.3px; }
+  .brand .name .ai { color: var(--red); }
+  .brand .subtag { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .resetBtn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .resetBtn:hover { border-color: var(--red); }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 28px 32px 60px; }
+
+  .workload-banner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+  }
+  .workload-banner .agent-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    flex-shrink: 0;
+  }
+  .workload-banner .label { font-size: 13px; color: var(--muted); }
+  .workload-banner .chip {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  .subhead { color: var(--muted); font-size: 14px; margin-bottom: 24px; max-width: 760px; line-height: 1.5; }
+
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  .module-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .module-card.alert { border-color: var(--danger); background: linear-gradient(180deg, rgba(239, 68, 68, 0.08), var(--card) 40%); }
+  .module-card .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .module-card .icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(215, 25, 33, 0.14);
+    color: var(--red);
+    flex-shrink: 0;
+  }
+  .module-card.alert .icon { background: rgba(239, 68, 68, 0.18); color: var(--danger); }
+  .status-pill {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .status-pill.protected { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+  .status-pill.alert { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+  .module-card h3 { font-size: 15px; margin-bottom: 6px; }
+  .module-card .desc { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; flex-grow: 1; }
+  .module-card .last-event {
+    font-size: 12px;
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .trigger-btn {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .trigger-btn:hover { background: var(--red-dark); }
+  .trigger-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .events-section h2 { font-size: 18px; margin-bottom: 4px; }
+  .events-section .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .events-table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  table.events { width: 100%; border-collapse: collapse; }
+  table.events th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+  }
+  table.events td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: top;
+  }
+  table.events tr:last-child td { border-bottom: none; }
+  .sev { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .sev.Critical { background: rgba(215, 25, 33, 0.18); color: #ff6b70; }
+  .sev.High { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+  .sev.Medium { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+  .empty-events { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
+  .action-tag { font-size: 12px; color: var(--text); font-weight: 600; }
+  .ts { color: var(--muted); font-size: 12px; white-space: nowrap; }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="logo" viewBox="4 2 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TrendAI">
+        <path d="M24 2L44 13V31L24 42L4 31V13L24 2Z" fill="#D71921"/>
+        <path d="M24 8L38 16V28L24 36L10 28V16L24 8Z" fill="#A01218"/>
+        <text x="24" y="27" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="12" fill="white" letter-spacing="0.5">AI</text>
+      </svg>
+      <div>
+        <div class="name">Trend<span class="ai">AI</span> Vision One</div>
+        <div class="subtag">Server &amp; Workload Protection</div>
+      </div>
+    </div>
+    <button class="resetBtn" id="resetBtn">Reset Demo</button>
+  </header>
+
+  <div class="container">
+    <div class="workload-banner">
+      <span class="agent-dot"></span>
+      <span class="label">Protected Workload:</span>
+      <span class="chip">web-prod-01</span>
+      <span class="chip">10.20.4.15</span>
+      <span class="chip">Ubuntu 22.04 LTS</span>
+      <span class="chip">Policy: Web Server Policy</span>
+      <span class="chip">Agent: Online</span>
+    </div>
+
+    <h1>Module Status</h1>
+    <p class="subhead">
+      Each module below runs a real, local detection check — the trigger only sends a click;
+      every scan/lookup/match happens server-side. Click a module's button to simulate the
+      matching stage of an attacker exploiting this workload, and watch it get caught.
+    </p>
+
+    <div class="modules-grid" id="modulesGrid"></div>
+
+    <div class="events-section">
+      <h2>Security Events</h2>
+      <p class="sub">Consolidated timeline across all modules, newest first.</p>
+      <div class="events-table-wrap">
+        <table class="events" id="eventsTable">
+          <thead>
+            <tr>
+              <th style="width:150px">Time</th>
+              <th style="width:170px">Module</th>
+              <th style="width:90px">Severity</th>
+              <th style="width:220px">Rule</th>
+              <th>Description</th>
+              <th style="width:100px">Action</th>
+            </tr>
+          </thead>
+          <tbody id="eventsBody"></tbody>
+        </table>
+        <div class="empty-events" id="emptyEvents">No events yet — trigger a module above to get started.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ICONS = {
+      shield: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
+      globe: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20"/></svg>',
+      bolt: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>',
+      file: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg>',
+      list: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
+    };
+
+    const MODULES = [
+      {
+        id: 'anti-malware',
+        icon: 'shield',
+        name: 'Anti-Malware',
+        desc: 'Real-time file scanning. Simulates an attacker using command injection to download malware onto this workload.',
+        button: 'Simulate malware download',
+      },
+      {
+        id: 'web-reputation',
+        icon: 'globe',
+        name: 'Web Reputation',
+        desc: 'Blocks outbound connections to known-malicious hosts before any data is exchanged.',
+        button: 'Check malware source reputation',
+      },
+      {
+        id: 'host-ips',
+        icon: 'bolt',
+        name: 'Intrusion Prevention (Host IPS)',
+        desc: 'Inspects traffic for known exploit signatures — SQL injection and browser remote-code-execution PoCs.',
+        button: 'Simulate exploit payload',
+      },
+      {
+        id: 'integrity-monitoring',
+        icon: 'file',
+        name: 'Integrity Monitoring',
+        desc: 'Detects unauthorized changes to critical system files, such as an attacker adding a backdoor user.',
+        button: 'Simulate unauthorized file change',
+      },
+      {
+        id: 'log-inspection',
+        icon: 'list',
+        name: 'Log Inspection',
+        desc: 'Analyzes system logs for attack patterns — e.g. repeated failed logins followed by a success.',
+        button: 'Simulate suspicious log activity',
+      },
+    ];
+
+    let disabled = false;
+
+    function renderModules(state) {
+      const grid = document.getElementById('modulesGrid');
+      grid.innerHTML = '';
+      MODULES.forEach((m) => {
+        const mod = state.modules[m.id] || { status: 'protected', last_event: null };
+        const isAlert = mod.status === 'alert';
+        const card = document.createElement('div');
+        card.className = 'module-card' + (isAlert ? ' alert' : '');
+        card.innerHTML = `
+          <div class="head">
+            <div class="icon">${ICONS[m.icon]}</div>
+            <span class="status-pill ${isAlert ? 'alert' : 'protected'}">${isAlert ? 'Alert' : 'Protected'}</span>
+          </div>
+          <h3>${m.name}</h3>
+          <p class="desc">${m.desc}</p>
+          ${mod.last_event ? `<div class="last-event">⚠ ${mod.last_event.rule}: ${mod.last_event.description}</div>` : ''}
+          <button class="trigger-btn" data-module="${m.id}" ${disabled ? 'disabled' : ''}>${m.button}</button>
+        `;
+        grid.appendChild(card);
+      });
+      grid.querySelectorAll('.trigger-btn').forEach((btn) => {
+        btn.addEventListener('click', () => triggerModule(btn.dataset.module));
+      });
+    }
+
+    function renderEvents(state) {
+      const body = document.getElementById('eventsBody');
+      const empty = document.getElementById('emptyEvents');
+      const table = document.getElementById('eventsTable');
+      if (!state.events.length) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+      table.style.display = 'table';
+      empty.style.display = 'none';
+      body.innerHTML = state.events.map((e) => `
+        <tr>
+          <td class="ts">${new Date(e.timestamp).toLocaleTimeString()}</td>
+          <td>${e.module}</td>
+          <td><span class="sev ${e.severity}">${e.severity}</span></td>
+          <td>${e.rule}</td>
+          <td>${e.description}</td>
+          <td class="action-tag">${e.action}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function fetchState() {
+      const res = await fetch('/api/state');
+      return res.json();
+    }
+
+    async function refresh() {
+      const state = await fetchState();
+      renderModules(state);
+      renderEvents(state);
+    }
+
+    async function triggerModule(moduleId) {
+      disabled = true;
+      renderModules(await fetchState());
+      try {
+        await fetch('/api/trigger/' + moduleId, { method: 'POST' });
+      } catch (_) { /* ignore — UI will just not update this cycle */ }
+      disabled = false;
+      await refresh();
+    }
+
+    document.getElementById('resetBtn').addEventListener('click', async () => {
+      await fetch('/api/reset', { method: 'POST' });
+      await refresh();
+    });
+
+    refresh();
+  </script>
+</body>
+</html>

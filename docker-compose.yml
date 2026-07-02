@@ -11,6 +11,7 @@
 #   http://<host>:8088/appsec    AI Guard & File Security   (auth required)
 #   http://<host>:8088/smish     Smish Detector             (auth required)
 #   http://<host>:8088/siemcalc  Agentic SIEM Calculator    (auth required)
+#   http://<host>:8088/workload  Server & Workload Protection (auth required)
 #
 # The demo containers are NOT published on the host — they are only reachable
 # on the internal compose network via the authenticated portal.
@@ -36,6 +37,7 @@ services:
       - app-sec
       - smish
       - siem-calc
+      - workload-protection
     restart: unless-stopped
 
   # --- V1 File Security Scanner (Go) — internal only ----------------------
@@ -90,6 +92,13 @@ services:
     build:
       context: ./tools/siem-calculator
     container_name: trendai-siem-calc
+    restart: unless-stopped
+
+  # --- Server & Workload Protection (FastAPI) — internal only -------------
+  workload-protection:
+    build:
+      context: ./tools/workload-protection
+    container_name: trendai-workload-protection
     restart: unless-stopped
 
   # --- Smish Detector (Flask, HTTPS/self-signed) — internal only ----------
