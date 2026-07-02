@@ -122,9 +122,15 @@ app.get('/api/session', (req, res) => {
 });
 
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body || {};
+  // Single-user portal: the account is always "admin", so we don't reject on a
+  // mis-autofilled username. Trim the password to absorb stray whitespace/newlines
+  // that password managers sometimes append.
+  const { password } = req.body || {};
   const auth = loadAuth();
-  if (username !== auth.username || !verifyPassword(password || '', auth.passwordHash)) {
+  const pw = (password || '').trim();
+  const ok = verifyPassword(pw, auth.passwordHash);
+  console.log(`[auth] login attempt pwlen=${pw.length} result=${ok ? 'ok' : 'reject'} at ${new Date().toISOString()}`);
+  if (!ok) {
     return res.status(401).json({ error: 'Invalid username or password.' });
   }
   const token = createSession(auth.username);
@@ -142,22 +148,27 @@ app.post('/api/logout', (req, res) => {
 app.post('/api/change-password', requireAuth, (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   const auth = loadAuth();
-  if (!verifyPassword(currentPassword || '', auth.passwordHash)) {
+  // Trim consistently with login so a stored password always matches what the
+  // user later types at the login form.
+  const cur = (currentPassword || '').trim();
+  const np = (newPassword || '').trim();
+  if (!verifyPassword(cur, auth.passwordHash)) {
     return res.status(400).json({ error: 'Current password is incorrect.' });
   }
-  if (!newPassword || newPassword.length < MIN_PASSWORD_LENGTH) {
+  if (np.length < MIN_PASSWORD_LENGTH) {
     return res.status(400).json({ error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
   }
-  if (newPassword === DEFAULT_PASSWORD) {
+  if (np === DEFAULT_PASSWORD) {
     return res.status(400).json({ error: 'Please choose a password other than the default.' });
   }
-  if (verifyPassword(newPassword, auth.passwordHash)) {
+  if (verifyPassword(np, auth.passwordHash)) {
     return res.status(400).json({ error: 'New password must be different from the current one.' });
   }
-  auth.passwordHash = hashPassword(newPassword);
+  auth.passwordHash = hashPassword(np);
   auth.mustChangePassword = false;
   auth.updatedAt = new Date().toISOString();
   saveAuth(auth);
+  console.log(`[auth] password changed newlen=${np.length} at ${auth.updatedAt}`);
   res.json({ ok: true });
 });
 
