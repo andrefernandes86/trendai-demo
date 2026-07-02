@@ -134,19 +134,6 @@ def get_geo_info(ip):
     
     # Return default values if geolocation fails
     return {'country': 'Unknown', 'region': 'Unknown', 'city': 'Unknown', 'isp': 'Unknown'}
-                    return {
-                        'country': data.get('country', 'Unknown'),
-                        'region': data.get('region', 'Unknown'), 
-                        'city': data.get('city', 'Unknown'),
-                        'isp': data.get('connection', {}).get('org', 'Unknown')
-                    }
-                    
-        except Exception as e:
-            print(f"[DEBUG] Service {service_url} failed: {str(e)}")
-            continue
-    
-    print("[DEBUG] All geolocation services failed")
-    return {'country': 'Unknown', 'region': 'Unknown', 'city': 'Unknown', 'isp': 'Unknown'}
 
 def get_client_ip(request):
     """Get the real client IP address, handling proxies and load balancers"""
