@@ -164,20 +164,21 @@ app.post('/api/change-password', requireAuth, (req, res) => {
 // --- Page routing ---------------------------------------------------------
 // Gate every page behind auth + the forced-reset flow before serving static.
 
+// Serve the right page directly with a 200 (no server-side 302) so browsers
+// that don't follow redirect bodies still render. The client-side scripts
+// re-check /api/session and navigate as needed.
 app.get(['/', '/index.html', '/dashboard', '/dashboard.html'], (req, res) => {
   const session = currentSession(req);
-  if (!session) return res.redirect('/login');
-  if (loadAuth().mustChangePassword) return res.redirect('/change-password');
+  if (!session) return res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
+  if (loadAuth().mustChangePassword) return res.sendFile(path.join(PUBLIC_DIR, 'change-password.html'));
   res.sendFile(path.join(PUBLIC_DIR, 'dashboard.html'));
 });
 
 app.get(['/login', '/login.html'], (req, res) => {
-  if (currentSession(req) && !loadAuth().mustChangePassword) return res.redirect('/');
   res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
 });
 
 app.get(['/change-password', '/change-password.html'], (req, res) => {
-  if (!currentSession(req)) return res.redirect('/login');
   res.sendFile(path.join(PUBLIC_DIR, 'change-password.html'));
 });
 
