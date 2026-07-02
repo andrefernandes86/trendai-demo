@@ -105,10 +105,23 @@ function getSession(token) {
 // ---------------------------------------------------------------------------
 
 const app = express();
+// The portal's own responses are auth-dependent and must NEVER be cached — a
+// fronting CDN (Cloudflare) that caches the logged-out page/session otherwise
+// traps users in a login → bounce-back loop. Disable ETags and force no-store.
+app.set('etag', false);
 app.use(cookieParser());
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  next();
+});
 // JSON body parsing is applied per-route (below) — NOT globally — so it never
 // consumes the body of a request that is about to be proxied to a demo backend.
 const jsonParser = express.json();
+
+// Serve a portal HTML page without letting sendFile re-add a cacheable header.
+function sendPage(res, name) {
+  res.sendFile(path.join(PUBLIC_DIR, name), { cacheControl: false, lastModified: false });
+}
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
@@ -255,17 +268,17 @@ app.post('/api/change-password', jsonParser, requireAuth, (req, res) => {
 // re-check /api/session and navigate as needed.
 app.get(['/', '/index.html', '/dashboard', '/dashboard.html'], (req, res) => {
   const session = currentSession(req);
-  if (!session) return res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
-  if (loadAuth().mustChangePassword) return res.sendFile(path.join(PUBLIC_DIR, 'change-password.html'));
-  res.sendFile(path.join(PUBLIC_DIR, 'dashboard.html'));
+  if (!session) return sendPage(res, 'login.html');
+  if (loadAuth().mustChangePassword) return sendPage(res, 'change-password.html');
+  sendPage(res, 'dashboard.html');
 });
 
 app.get(['/login', '/login.html'], (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'login.html'));
+  sendPage(res, 'login.html');
 });
 
 app.get(['/change-password', '/change-password.html'], (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'change-password.html'));
+  sendPage(res, 'change-password.html');
 });
 
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
@@ -276,8 +289,9 @@ app.get('/healthz', (_req, res) => res.json({ ok: true }));
 app.use(express.static(PUBLIC_DIR, {
   index: false,
   extensions: [],
-  // Always revalidate so a rebuilt portal never serves a stale hub/demos.js.
-  setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+  etag: false,
+  lastModified: false,
+  cacheControl: false, // the global no-store middleware above governs caching
 }));
 
 // --- Demo reverse proxy (auth-gated) --------------------------------------
