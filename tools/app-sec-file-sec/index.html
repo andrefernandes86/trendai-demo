@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrendAI - AI Security Demo</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    :root {
+      --bg-primary: #0c0e1a;
+      --bg-secondary: #12142a;
+      --surface: #1a1d3a;
+      --surface-hover: #21244a;
+      --surface-elevated: #282b4a;
+      --border: #2d3252;
+      --border-light: #3a3f5f;
+      --text-primary: #ffffff;
+      --text-secondary: #a8aed0;
+      --text-tertiary: #6b7096;
+      --accent-primary: #3b82f6;
+      --accent-secondary: #06b6d4;
+      --accent-tertiary: #8b5cf6;
+      --accent-glow: rgba(59, 130, 246, 0.3);
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, #0a0c18 50%, var(--bg-secondary) 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, rgba(26, 29, 58, 0.9) 0%, rgba(18, 20, 42, 0.8) 100%);
+      backdrop-filter: blur(20px);
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .header-content {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 50%, var(--accent-tertiary) 100%);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 0 30px var(--accent-glow);
+      animation: pulse 4s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 30px var(--accent-glow); }
+      50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(59, 130, 246, 0.5); }
+    }
+    
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 50%, var(--accent-tertiary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.03em;
+    }
+    
+    .header-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+    
+    .header a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+    }
+    
+    .header a:hover {
+      color: var(--accent-primary);
+      background: var(--surface);
+    }
+    
+    .tabs {
+      background: rgba(26, 29, 58, 0.7);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 0.5rem;
+      padding: 0 2rem;
+      position: sticky;
+      top: 88px;
+      z-index: 99;
+    }
+    
+    .tab {
+      background: transparent;
+      color: var(--text-secondary);
+      border: none;
+      padding: 1.125rem 2rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    
+    .tab:hover {
+      color: var(--text-primary);
+      background: var(--surface-hover);
+    }
+    
+    .tab.active {
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
+      background: var(--surface);
+    }
+    
+    .tab.active::before {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 20%;
+      right: 20%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent-primary), var(--accent-secondary), transparent);
+      filter: blur(4px);
+    }
+    
+    .btn {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg), 0 0 20px var(--accent-glow);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn.secondary {
+      background: var(--surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .btn.secondary:hover {
+      background: var(--surface-hover);
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    
+    .btn.small {
+      padding: 0.625rem 1.125rem;
+      font-size: 0.85rem;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 2.5rem;
+      gap: 2rem;
+    }
+    
+    .view {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+    
+    .view.active {
+      display: flex;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      scroll-behavior: smooth;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      min-height: 500px;
+    }
+    
+    .chat-area::-webkit-scrollbar, .history-list::-webkit-scrollbar, .settings-view::-webkit-scrollbar {
+      width: 10px;
+    }
+    
+    .chat-area::-webkit-scrollbar-track, .history-list::-webkit-scrollbar-track, .settings-view::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .chat-area::-webkit-scrollbar-thumb, .history-list::-webkit-scrollbar-thumb, .settings-view::-webkit-scrollbar-thumb {
+      background: var(--border-light);
+      border-radius: 5px;
+    }
+    
+    .chat-area::-webkit-scrollbar-thumb:hover, .history-list::-webkit-scrollbar-thumb:hover, .settings-view::-webkit-scrollbar-thumb:hover {
+      background: var(--text-tertiary);
+    }
+    
+    .msg {
+      padding: 1.125rem 1.5rem;
+      border-radius: var(--radius-md);
+      max-width: 80%;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      animation: slideIn 0.3s ease-out;
+      box-shadow: var(--shadow-md);
+      font-size: 0.95rem;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .msg.assistant {
+      align-self: flex-start;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-light);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+    }
+    
+    .msg.system {
+      align-self: center;
+      color: var(--text-tertiary);
+      font-size: 0.875rem;
+      background: transparent;
+      box-shadow: none;
+      border: 1px dashed var(--border);
+    }
+    
+    .msg.scan {
+      align-self: flex-start;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+      border: 1px solid var(--success);
+      color: var(--text-primary);
+      max-width: 90%;
+      border-left: 4px solid var(--success);
+    }
+    
+    .msg.scan.malicious {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%);
+      border-color: var(--danger);
+      border-left-color: var(--danger);
+    }
+    
+    .scan-header {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+    
+    .scan-details {
+      font-size: 0.9rem;
+      opacity: 0.95;
+      line-height: 1.8;
+    }
+    
+    .input-area {
+      padding: 1.5rem 0 0 0;
+      border-top: 1px solid var(--border);
+      margin-top: auto;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+    }
+    
+    .input-controls {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .file-upload-btn {
+      display: inline-block;
+    }
+    
+    .input-row {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .input-row input {
+      flex: 1;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      color: var(--text-primary);
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    
+    .input-row input::placeholder {
+      color: var(--text-tertiary);
+    }
+    
+    .input-row input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      background: var(--surface);
+    }
+    
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s;
+    }
+    
+    .panel:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--border-light);
+    }
+    
+    .panel h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 0 1.5rem 0;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--border);
+    }
+    
+    .panel h2::before {
+      content: '';
+      width: 4px;
+      height: 1.5rem;
+      background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 2px;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin-bottom: 0.625rem;
+      font-weight: 600;
+    }
+    
+    .form-group input, .form-group select {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.875rem 1.125rem;
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      background: var(--surface);
+    }
+    
+    .form-group input:hover, .form-group select:hover {
+      border-color: var(--border-light);
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    
+    .form-row .form-group {
+      flex: 1;
+      min-width: 280px;
+      margin-bottom: 0;
+    }
+    
+    .form-row .btn {
+      flex-shrink: 0;
+      margin-top: 2.125rem;
+    }
+    
+    .status {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 0.625rem;
+      display: block;
+      line-height: 1.6;
+      padding: 0.625rem 1rem;
+      border-radius: var(--radius-sm);
+      background: var(--surface-elevated);
+    }
+    
+    .status.ok {
+      color: var(--success);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+      border-left: 3px solid var(--success);
+    }
+    
+    .status.err {
+      color: var(--danger);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%);
+      border-left: 3px solid var(--danger);
+    }
+    
+    .help-text {
+      font-size: 0.85rem;
+      color: var(--text-tertiary);
+      margin-top: 0.625rem;
+      line-height: 1.6;
+    }
+    
+    .help-text strong {
+      color: var(--accent-primary);
+      font-weight: 600;
+    }
+    
+    .help-text code {
+      background: var(--surface-elevated);
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      color: var(--accent-primary);
+      border: 1px solid var(--border);
+    }
+    
+    .info-box {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-left: 4px solid var(--accent-primary);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .info-box strong {
+      color: var(--accent-primary);
+      font-weight: 700;
+    }
+    
+    .info-box code {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      color: var(--accent-secondary);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    
+    .test-section {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.03) 100%);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .test-section h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--accent-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .test-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .endpoint-ref {
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+      margin-top: 0.625rem;
+      line-height: 1.6;
+    }
+    
+    .endpoint-ref a {
+      color: var(--accent-primary);
+      text-decoration: none;
+      transition: color 0.2s;
+      font-weight: 500;
+    }
+    
+    .endpoint-ref a:hover {
+      color: var(--accent-secondary);
+      text-decoration: underline;
+    }
+    
+    .settings-view {
+      overflow-y: auto;
+      padding-bottom: 2rem;
+    }
+    
+    .save-section {
+      margin-top: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 1.5rem;
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+    
+    input[type="checkbox"] {
+      width: 1.25rem;
+      height: 1.25rem;
+      accent-color: var(--accent-primary);
+      cursor: pointer;
+    }
+    
+    /* History View Styles */
+    .history-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      padding: 1rem 0;
+    }
+    
+    .history-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s;
+    }
+    
+    .history-item:hover {
+      box-shadow: var(--shadow-lg);
+      border-color: var(--border-light);
+    }
+    
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .history-method {
+      display: inline-block;
+      padding: 0.375rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+    }
+    
+    .history-method.GET {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+      color: var(--success);
+    }
+    
+    .history-method.POST {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
+      color: var(--accent-primary);
+    }
+    
+    .history-url {
+      font-family: 'SF Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      font-weight: 600;
+      margin: 0.5rem 0;
+    }
+    
+    .history-timestamp {
+      font-size: 0.8rem;
+      color: var(--text-tertiary);
+    }
+    
+    .history-section {
+      margin: 1rem 0;
+    }
+    
+    .history-section h4 {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .history-code {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: 'SF Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+    
+    .history-code pre {
+      margin: 0;
+    }
+    
+    .history-status {
+      display: inline-block;
+      padding: 0.375rem 0.875rem;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    
+    .history-status.success {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+      color: var(--success);
+    }
+    
+    .history-status.error {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+      color: var(--danger);
+    }
+    
+    .history-empty {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-tertiary);
+      font-size: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 1.5rem;
+      }
+      
+      .header {
+        padding: 1rem 1.5rem;
+      }
+      
+      .tabs {
+        padding: 0 1rem;
+      }
+      
+      .tab {
+        padding: 1rem 1.25rem;
+        font-size: 0.9rem;
+      }
+      
+      .form-row {
+        flex-direction: column;
+      }
+      
+      .form-row .btn {
+        margin-top: 0;
+        width: 100%;
+      }
+      
+      .msg {
+        max-width: 90%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-icon">🛡️</div>
+        <h1>TrendAI</h1>
+      </div>
+      <div class="header-links">
+        <a href="/healthz" target="_blank">Health Check</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-view="chat">💬 Chat</button>
+    <button class="tab" data-view="history">📜 History</button>
+    <button class="tab" data-view="settings">⚙️ Settings</button>
+  </div>
+
+  <div class="container">
+    <!-- Chat View -->
+    <div id="chatView" class="view active">
+      <div class="chat-area" id="chatArea">
+        <div class="msg system" id="welcomeMsg">👋 Welcome to TrendAI! Configure your settings, then start chatting or upload files to scan.</div>
+      </div>
+      <div class="input-area">
+        <div class="input-controls">
+          <div class="file-upload-btn">
+            <button type="button" class="btn secondary small" id="uploadBtn">📎 Upload File</button>
+            <input type="file" id="fileInput" style="display: none;" />
+          </div>
+          <button type="button" class="btn secondary small" id="testEicarChat">🦠 Test EICAR</button>
+          <button type="button" class="btn secondary small" id="testHelloChat">✅ Test Hello</button>
+          <button type="button" class="btn secondary small" id="testInjectionChat">⚠️ Test Injection</button>
+        </div>
+        <div class="input-row">
+          <input type="text" id="userInput" placeholder="Type your message here..." />
+          <button type="button" class="btn" id="sendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- History View -->
+    <div id="historyView" class="view">
+      <div class="panel">
+        <h2>📜 Request History</h2>
+        <div class="history-list" id="historyList">
+          <div class="history-empty">No requests yet. Start chatting or upload files to see history.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings View -->
+    <div id="settingsView" class="view settings-view">
+      <div class="info-box">
+        <strong>🐳 Docker Network Configuration:</strong> If Ollama runs on the same computer, use <code>host.docker.internal:11434</code>. 
+        For remote servers, use the LAN IP address like <code>192.168.1.100:11434</code>.
+      </div>
+
+      <div class="panel">
+        <h2>🤖 LLM Server (Ollama)</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ollamaBaseUrl">Server URL</label>
+            <input type="text" id="ollamaBaseUrl" placeholder="host.docker.internal:11434 or 192.168.1.100:11434" />
+            <p class="help-text">Enter base URL without <code>/api</code>. Use <strong>host.docker.internal:11434</strong> for local Ollama.</p>
+          </div>
+          <button type="button" class="btn secondary" id="loadModels">Load Models</button>
+        </div>
+        <div class="form-group">
+          <label for="ollamaModel">Model Selection</label>
+          <select id="ollamaModel">
+            <option value="">— Load models first —</option>
+          </select>
+          <div class="status" id="modelsStatus"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>🛡️ AI Guard</h2>
+        <div class="form-group">
+          <label><input type="checkbox" id="v1GuardEnabled" checked /> Enable AI Guard scanning</label>
+        </div>
+        <div class="form-group">
+          <label for="v1GuardApiKey">API Key</label>
+          <input type="password" id="v1GuardApiKey" placeholder="Enter your Vision One API key for AI Guard" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label for="v1GuardUrl">API Endpoint</label>
+          <input type="url" id="v1GuardUrl" placeholder="https://api.xdr.trendmicro.com/beta/aiSecurity/guard" />
+          <p class="endpoint-ref">Reference: <a href="https://automation.trendmicro.com/xdr/api-beta" target="_blank" rel="noopener">Beta AI Security Guard API</a></p>
+        </div>
+        <div class="form-group">
+          <label for="enforceSide">Enforcement Policy</label>
+          <select id="enforceSide">
+            <option value="both">User prompts and assistant responses</option>
+            <option value="user">User prompts only</option>
+            <option value="assistant">Assistant responses only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>🔒 File Security</h2>
+        <div class="form-group">
+          <label><input type="checkbox" id="v1fsEnabled" checked /> Enable V1 File Security scanning</label>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="v1fsApiKey">API Key</label>
+            <input type="password" id="v1fsApiKey" placeholder="Enter your Vision One API key for File Security" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label for="v1fsRegion">Region</label>
+            <select id="v1fsRegion">
+              <option value="us-east-1">🇺🇸 us-east-1 (N. Virginia)</option>
+              <option value="eu-central-1">🇪🇺 eu-central-1 (Frankfurt)</option>
+              <option value="ap-northeast-1">🇯🇵 ap-northeast-1 (Tokyo)</option>
+              <option value="ap-southeast-2">🇦🇺 ap-southeast-2 (Sydney)</option>
+              <option value="ap-southeast-1">🇸🇬 ap-southeast-1 (Singapore)</option>
+              <option value="ap-south-1">🇮🇳 ap-south-1 (Mumbai)</option>
+              <option value="me-central-1">🇦🇪 me-central-1 (UAE)</option>
+              <option value="ca-central-1">🇨🇦 ca-central-1 (Canada)</option>
+              <option value="eu-west-2">🇬🇧 eu-west-2 (London)</option>
+            </select>
+          </div>
+        </div>
+        <p class="help-text">Learn more: <a href="https://github.com/trendmicro/tm-v1-fs-python-sdk" target="_blank" style="color: var(--accent-primary); font-weight: 600;">Trend Vision One File Security SDK</a></p>
+        
+        <div class="test-section">
+          <h3>🧪 Security Testing</h3>
+          <p style="font-size: 0.9rem; margin-bottom: 1.25rem; color: var(--text-secondary);">Validate V1FS and AI Guard with sample files:</p>
+          <div class="test-buttons">
+            <button type="button" class="btn secondary small" id="testEicar">🦠 EICAR Malware</button>
+            <button type="button" class="btn secondary small" id="testHello">✅ Hello World</button>
+            <button type="button" class="btn secondary small" id="testInjection">⚠️ Prompt Injection</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="save-section">
+        <button type="button" class="btn" id="saveConfig">💾 Save Configuration</button>
+        <span class="status" id="configStatus"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    const el = (id) => document.getElementById(id);
+    const chatView = el('chatView');
+    const historyView = el('historyView');
+    const settingsView = el('settingsView');
+    const ollamaBaseUrl = el('ollamaBaseUrl');
+    const ollamaModel = el('ollamaModel');
+    const loadModels = el('loadModels');
+    const modelsStatus = el('modelsStatus');
+    const v1GuardApiKey = el('v1GuardApiKey');
+    const v1GuardUrl = el('v1GuardUrl');
+    const enforceSide = el('enforceSide');
+    const v1GuardEnabled = el('v1GuardEnabled');
+    const v1fsApiKey = el('v1fsApiKey');
+    const v1fsRegion = el('v1fsRegion');
+    const v1fsEnabled = el('v1fsEnabled');
+    const saveConfig = el('saveConfig');
+    const configStatus = el('configStatus');
+    const chatArea = el('chatArea');
+    const welcomeMsg = el('welcomeMsg');
+    const userInput = el('userInput');
+    const sendBtn = el('sendBtn');
+    const fileInput = el('fileInput');
+    const historyList = el('historyList');
+
+    // History tracking
+    const requestHistory = [];
+
+    function addToHistory(method, url, requestHeaders, requestBody, responseStatus, responseHeaders, responseBody) {
+      const entry = {
+        timestamp: new Date().toISOString(),
+        method,
+        url,
+        requestHeaders,
+        requestBody,
+        responseStatus,
+        responseHeaders,
+        responseBody
+      };
+      requestHistory.unshift(entry);
+      updateHistoryView();
+    }
+
+    function updateHistoryView() {
+      if (requestHistory.length === 0) {
+        historyList.innerHTML = '<div class="history-empty">No requests yet. Start chatting or upload files to see history.</div>';
+        return;
+      }
+
+      historyList.innerHTML = requestHistory.map((entry, index) => {
+        const statusClass = entry.responseStatus >= 200 && entry.responseStatus < 300 ? 'success' : 'error';
+        return `
+          <div class="history-item">
+            <div class="history-header">
+              <div>
+                <span class="history-method ${entry.method}">${entry.method}</span>
+                <div class="history-url">${entry.url}</div>
+                <div class="history-timestamp">${new Date(entry.timestamp).toLocaleString()}</div>
+              </div>
+              <span class="history-status ${statusClass}">${entry.responseStatus}</span>
+            </div>
+            
+            <div class="history-section">
+              <h4>Request Headers</h4>
+              <div class="history-code"><pre>${JSON.stringify(entry.requestHeaders, null, 2)}</pre></div>
+            </div>
+            
+            ${entry.requestBody ? `
+            <div class="history-section">
+              <h4>Request Body</h4>
+              <div class="history-code"><pre>${typeof entry.requestBody === 'string' ? entry.requestBody : JSON.stringify(entry.requestBody, null, 2)}</pre></div>
+            </div>
+            ` : ''}
+            
+            <div class="history-section">
+              <h4>Response Headers</h4>
+              <div class="history-code"><pre>${JSON.stringify(entry.responseHeaders, null, 2)}</pre></div>
+            </div>
+            
+            <div class="history-section">
+              <h4>Response Body</h4>
+              <div class="history-code"><pre>${typeof entry.responseBody === 'string' ? entry.responseBody : JSON.stringify(entry.responseBody, null, 2)}</pre></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Enhanced fetch wrapper
+    async function trackedFetch(url, options = {}) {
+      const method = options.method || 'GET';
+      const requestHeaders = options.headers || {};
+      const requestBody = options.body || null;
+
+      const response = await fetch(url, options);
+      
+      const responseHeaders = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+
+      const responseBody = await response.clone().text().then(text => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return text;
+        }
+      });
+
+      addToHistory(
+        method,
+        url,
+        requestHeaders,
+        requestBody instanceof FormData ? '[FormData]' : requestBody,
+        response.status,
+        responseHeaders,
+        responseBody
+      );
+
+      return response;
+    }
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const view = tab.dataset.view;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        chatView.classList.toggle('active', view === 'chat');
+        historyView.classList.toggle('active', view === 'history');
+        settingsView.classList.toggle('active', view === 'settings');
+        if (view === 'settings') loadConfig();
+      });
+    });
+
+    function setStatus(node, text, ok) {
+      node.textContent = text;
+      node.className = 'status' + (ok === true ? ' ok' : ok === false ? ' err' : '');
+    }
+
+    async function loadConfig() {
+      try {
+        const r = await trackedFetch(API + '/api/config');
+        const c = await r.json();
+        ollamaBaseUrl.value = c.ollama_base_url || '';
+        ollamaModel.innerHTML = c.ollama_model
+          ? `<option value="${escapeHtml(c.ollama_model)}">${escapeHtml(c.ollama_model)}</option>`
+          : '<option value="">— Load models first —</option>';
+        v1GuardUrl.value = c.v1_guard_url_base || 'https://api.xdr.trendmicro.com/beta/aiSecurity/guard';
+        enforceSide.value = c.enforce_side || 'both';
+        v1GuardEnabled.checked = c.v1_guard_enabled !== false;
+        if (c.v1_guard_api_key_masked) v1GuardApiKey.placeholder = c.v1_guard_api_key_masked + ' (leave blank to keep)';
+        v1fsRegion.value = c.v1fs_region || 'us-east-1';
+        v1fsEnabled.checked = c.v1fs_enabled !== false;
+        if (c.v1fs_api_key_masked) v1fsApiKey.placeholder = c.v1fs_api_key_masked + ' (leave blank to keep)';
+      } catch (e) {
+        setStatus(configStatus, 'Could not load config: ' + e.message, false);
+      }
+    }
+
+    loadConfig();
+
+    el('loadModels').addEventListener('click', async () => {
+      let base = ollamaBaseUrl.value.trim().replace(/\/$/, '');
+      if (base.endsWith('/api')) base = base.slice(0, -4);
+      if (base && !base.startsWith('http://') && !base.startsWith('https://')) {
+        base = 'http://' + base;
+      }
+      if (!base) {
+        setStatus(modelsStatus, 'Please enter Ollama URL first.', false);
+        return;
+      }
+      setStatus(modelsStatus, 'Loading models from ' + base + '...', null);
+      loadModels.disabled = true;
+      try {
+        const r = await trackedFetch(API + '/api/ollama/models?base_url=' + encodeURIComponent(base));
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || r.statusText);
+        const models = data.models || [];
+        const selected = ollamaModel.value;
+        ollamaModel.innerHTML = '<option value="">— Select a model —</option>' +
+          models.map(m => `<option value="${escapeHtml(m.name)}" ${m.name === selected ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('');
+        setStatus(modelsStatus, '✓ Successfully loaded ' + models.length + ' model(s)', true);
+      } catch (e) {
+        let msg = e.message || 'Failed to load models';
+        if (msg.includes('Cannot connect') || msg.includes('connection')) {
+          msg += '. Verify the container can reach this address. Try host.docker.internal:11434 for local Ollama.';
+        }
+        setStatus(modelsStatus, msg, false);
+        ollamaModel.innerHTML = '<option value="">— Select a model —</option>';
+      } finally {
+        loadModels.disabled = false;
+      }
+    });
+
+    el('saveConfig').addEventListener('click', async () => {
+      let base = ollamaBaseUrl.value.trim().replace(/\/$/, '');
+      if (base.endsWith('/api')) base = base.slice(0, -4);
+      const payload = {
+        ollama_base_url: base,
+        ollama_model: ollamaModel.value.trim(),
+        v1_guard_api_key: v1GuardApiKey.value.trim(),
+        v1_guard_url_base: v1GuardUrl.value.trim().replace(/\/$/, '') || 'https://api.xdr.trendmicro.com/beta/aiSecurity/guard',
+        v1_guard_enabled: v1GuardEnabled.checked,
+        v1_guard_detailed: false,
+        enforce_side: enforceSide.value,
+        v1fs_api_key: v1fsApiKey.value.trim(),
+        v1fs_region: v1fsRegion.value,
+        v1fs_enabled: v1fsEnabled.checked,
+      };
+      setStatus(configStatus, 'Saving configuration...', null);
+      try {
+        const r = await trackedFetch(API + '/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const out = await r.json();
+        if (!r.ok) throw new Error(out.detail || r.statusText);
+        setStatus(configStatus, '✓ Configuration saved successfully!', true);
+        if (welcomeMsg && chatArea.querySelectorAll('.msg').length === 1) {
+          welcomeMsg.textContent = '✅ Configuration saved! Switch to Chat tab to start.';
+        }
+      } catch (e) {
+        setStatus(configStatus, 'Error: ' + (e.message || 'Save failed'), false);
+      }
+    });
+
+    // File upload
+    el('uploadBtn').addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      
+      welcomeMsg.style.display = 'none';
+      appendMsg('system', `📎 Scanning ${file.name}...`);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const r = await trackedFetch(API + '/api/scan/file', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || r.statusText);
+        
+        displayScanResult(data);
+      } catch (e) {
+        appendMsg('system', `❌ Error scanning file: ${e.message}`);
+      }
+      
+      fileInput.value = '';
+    });
+
+    // Test buttons
+    const testButtons = [
+      { id: 'testEicar', idChat: 'testEicarChat', endpoint: '/api/test/eicar', msg: '🧪 Testing EICAR malware sample...' },
+      { id: 'testHello', idChat: 'testHelloChat', endpoint: '/api/test/hello', msg: '🧪 Testing Hello World file...' },
+      { id: 'testInjection', idChat: 'testInjectionChat', endpoint: '/api/test/injection', msg: '🧪 Testing prompt injection samples...' }
+    ];
+
+    testButtons.forEach(({ id, idChat, endpoint, msg }) => {
+      const handler = async () => {
+        welcomeMsg.style.display = 'none';
+        appendMsg('system', msg);
+        try {
+          const r = await trackedFetch(API + endpoint, { method: 'POST' });
+          const data = await r.json();
+          
+          // If response is a chat (AI Guard disabled for injection test), display as conversation
+          if (data.type === 'chat') {
+            appendMsg('user', data.user_message);
+            appendMsg('assistant', data.assistant_message);
+          } else {
+            // Otherwise display scan result
+            displayScanResult(data);
+          }
+        } catch (e) {
+          appendMsg('system', `❌ Error: ${e.message}`);
+        }
+      };
+      el(id).addEventListener('click', handler);
+      el(idChat).addEventListener('click', () => {
+        document.querySelector('.tab[data-view="chat"]').click();
+        handler();
+      });
+    });
+
+    function displayScanResult(data) {
+      const div = document.createElement('div');
+      div.className = 'msg scan' + (data.malicious ? ' malicious' : '');
+      
+      let html = `<div class="scan-header">${data.malicious ? '🚨' : '✅'} ${data.filename}</div>`;
+      html += `<div class="scan-details">`;
+      
+      if (data.v1fs_result) {
+        if (data.v1fs_result.error) {
+          html += `<strong>V1FS:</strong> ${data.v1fs_result.error}<br>`;
+        } else {
+          const malwares = data.v1fs_result.foundMalwares || [];
+          if (malwares.length > 0) {
+            html += `<strong>V1FS:</strong> 🦠 MALWARE DETECTED<br>`;
+            malwares.forEach(m => {
+              html += `&nbsp;&nbsp;→ ${m.malwareName} (${m.fileName})<br>`;
+            });
+          } else {
+            html += `<strong>V1FS:</strong> ✅ Clean<br>`;
+          }
+        }
+      }
+      
+      if (data.guard_result && !data.guard_result.allowed) {
+        html += `<strong>AI Guard:</strong> ⚠️ ${data.guard_result.reason}`;
+      } else if (data.guard_result) {
+        html += `<strong>AI Guard:</strong> ✅ Clean`;
+      }
+      
+      html += `</div>`;
+      div.innerHTML = html;
+      chatArea.appendChild(div);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    const messages = [];
+    async function send() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      userInput.value = '';
+      messages.push({ role: 'user', content: text });
+      appendMsg('user', text);
+      welcomeMsg.style.display = 'none';
+      sendBtn.disabled = true;
+      try {
+        const r = await trackedFetch(API + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || r.statusText);
+        const content = (data.message && data.message.content) || '';
+        messages.push({ role: 'assistant', content });
+        appendMsg('assistant', content);
+      } catch (e) {
+        appendMsg('system', '❌ Error: ' + (e.message || 'Request failed'));
+      } finally {
+        sendBtn.disabled = false;
+        userInput.focus();
+      }
+    }
+
+    function appendMsg(role, content) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.textContent = content;
+      chatArea.appendChild(div);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    sendBtn.addEventListener('click', send);
+    userInput.addEventListener('keydown', (e) => { 
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
+    });
+    
+    userInput.focus();
+  </script>
+</body>
+</html>

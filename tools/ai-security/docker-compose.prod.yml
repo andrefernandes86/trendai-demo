@@ -1,0 +1,227 @@
+version: '3.8'
+
+services:
+  # Database
+  database:
+    image: postgres:15-alpine
+    container_name: health-agent-database
+    environment:
+      POSTGRES_DB: health_agent
+      POSTGRES_USER: health_user
+      POSTGRES_PASSWORD: health_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - health-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: health-agent-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - health-network
+
+  # MinIO
+  minio:
+    image: minio/minio:latest
+    container_name: health-agent-minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - health-network
+
+  # Auth Service
+  auth-service:
+    image: andrefernandes86/health-auth-service:latest
+    container_name: health-agent-auth-service
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      FRONTEND_URL: http://192.168.1.100:3003
+    ports:
+      - "3001:3001"
+    depends_on:
+      - database
+      - redis
+    networks:
+      - health-network
+
+  # Nutrition Service
+  nutrition-service:
+    image: andrefernandes86/health-nutrition-service:latest
+    container_name: health-agent-nutrition-service
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      FRONTEND_URL: http://192.168.1.100:3003
+    ports:
+      - "3002:3002"
+    depends_on:
+      - database
+      - redis
+      - auth-service
+    networks:
+      - health-network
+
+  # Fitness Service
+  fitness-service:
+    image: andrefernandes86/health-fitness-service:latest
+    container_name: health-agent-fitness-service
+    environment:
+      PORT: 3007
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      FRONTEND_URL: http://192.168.1.100:3003
+    ports:
+      - "3007:3007"
+    depends_on:
+      - database
+      - redis
+      - auth-service
+    networks:
+      - health-network
+
+  # AI Service
+  ai-service:
+    image: andrefernandes86/health-ai-service:latest
+    container_name: health-agent-ai-service
+    environment:
+      PORT: 3004
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      SECURITY_SCANNER_URL: http://security-scanner:3008
+      FRONTEND_URL: http://192.168.1.100:3003
+    ports:
+      - "3004:3004"
+    depends_on:
+      - database
+      - redis
+      - auth-service
+      - security-scanner
+    networks:
+      - health-network
+
+  # Report Service
+  report-service:
+    image: andrefernandes86/health-report-service:latest
+    container_name: health-agent-report-service
+    environment:
+      PORT: 3005
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      NUTRITION_SERVICE_URL: http://nutrition-service:3002
+      FITNESS_SERVICE_URL: http://fitness-service:3007
+      FRONTEND_URL: http://192.168.1.100:3003
+    ports:
+      - "3005:3005"
+    depends_on:
+      - database
+      - redis
+      - auth-service
+      - nutrition-service
+      - fitness-service
+    networks:
+      - health-network
+
+  # Notification Service
+  notification-service:
+    image: andrefernandes86/health-notification-service:latest
+    container_name: health-agent-notification-service
+    environment:
+      PORT: 3006
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      FRONTEND_URL: http://192.168.1.100:3003
+    ports:
+      - "3006:3006"
+    depends_on:
+      - database
+      - redis
+      - auth-service
+    networks:
+      - health-network
+
+  # Security Scanner
+  security-scanner:
+    image: andrefernandes86/health-security-scanner:latest
+    container_name: health-agent-security-scanner
+    environment:
+      PORT: 3008
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      REDIS_URL: redis://redis:6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      FRONTEND_URL: http://192.168.1.100:3003
+    ports:
+      - "3008:3008"
+    depends_on:
+      - database
+      - redis
+      - auth-service
+    networks:
+      - health-network
+
+  # API Gateway
+  api-gateway:
+    image: andrefernandes86/health-api-gateway:latest
+    container_name: health-agent-api-gateway
+    environment:
+      PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:3001
+      NUTRITION_SERVICE_URL: http://nutrition-service:3002
+      FITNESS_SERVICE_URL: http://fitness-service:3007
+      AI_SERVICE_URL: http://ai-service:3004
+      REPORT_SERVICE_URL: http://report-service:3005
+      NOTIFICATION_SERVICE_URL: http://notification-service:3006
+      SECURITY_SCANNER_URL: http://security-scanner:3008
+      FRONTEND_URL: http://192.168.1.100:3003
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - nutrition-service
+      - fitness-service
+      - ai-service
+      - report-service
+      - notification-service
+      - security-scanner
+    networks:
+      - health-network
+
+  # Frontend
+  frontend:
+    image: andrefernandes86/health-frontend:latest
+    container_name: health-agent-frontend
+    ports:
+      - "3003:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - health-network
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  health-network:
+    driver: bridge

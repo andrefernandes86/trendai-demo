@@ -1,0 +1,25 @@
+# Config and runtime data (may contain secrets)
+config.json
+/data/
+*.pdf
+
+# Environment
+.env
+.env.local
+
+# Go
+/v1fs-scanner
+*.test
+vendor/
+
+# Compiled app binaries (built by apps/*/run.sh or make)
+apps/macos/v1fs-scanner
+apps/macos/V1FSScanner.app/
+apps/linux/v1fs-scanner
+# apps/windows/*.exe — .exe is tracked so users can download without building
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

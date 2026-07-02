@@ -1,0 +1,16 @@
+{
+    # Global options
+    auto_https off
+}
+
+# For localhost development (self-signed)
+:443 {
+    tls internal
+    reverse_proxy webapp:5000
+}
+
+# For production with domain (automatic Let's Encrypt)
+# Replace yourdomain.com with your actual domain
+# yourdomain.com {
+#     reverse_proxy webapp:5000
+# }

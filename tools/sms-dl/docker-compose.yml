@@ -1,0 +1,12 @@
+version: '3'
+services:
+  webapp:
+    build: .
+    ports:
+      - "443:5000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./ssl:/app/ssl
+    environment:
+      - REPORT_PASSWORD=sms
+      - SECRET_KEY=demo-secret-key-change-in-production

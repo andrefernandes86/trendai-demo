@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vision One File Security Scanner</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="side-nav">
+      <div class="side-nav-logo">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-wordmark">TrendAI</span>
+      </div>
+      <div class="side-nav-section-label">Vision One File Security</div>
+      <nav class="side-nav-section">
+        <button type="button" class="side-nav-item side-nav-item-active" data-tab="scanner">Scanner</button>
+        <button type="button" class="side-nav-item" data-tab="settings">Settings</button>
+        <button type="button" class="side-nav-item" data-tab="history">History</button>
+      </nav>
+    </aside>
+
+    <div class="shell-main">
+      <header class="header">
+        <div class="header-product">
+          <h1>Vision One File Security</h1>
+        </div>
+        <div class="header-meta">
+          <span class="header-chip">TrendAI Vision One</span>
+          <span id="scanner-status-chip" class="header-chip header-chip-status header-chip-checking">
+            <span class="status-dot"></span>
+            <span class="status-text">Checking...</span>
+          </span>
+        </div>
+      </header>
+
+    <main class="panes">
+      <section id="pane-scanner" class="pane active">
+        <div id="scanner-container-hint" class="collapsible-banner hidden" role="status">
+          <button type="button" class="collapsible-banner-toggle" aria-expanded="false" aria-controls="scanner-container-content">
+            <span class="collapsible-toggle-icon">▶</span>
+            <span class="collapsible-banner-title">Running in a container</span>
+          </button>
+          <div id="scanner-container-content" class="collapsible-banner-content hidden">
+            <p class="scanner-container-hint-text"></p>
+          </div>
+        </div>
+        <div class="card scanner-hero">
+          <div class="scanner-hero-header">
+            <div class="scanner-hero-copy">
+              <h2>Scan a folder</h2>
+              <p class="scanner-hero-subtitle">Select where you want to run a one‑time malware scan.</p>
+            </div>
+          </div>
+          <div class="scanner-hero-body">
+            <div class="scanner-column scanner-column-left folder-picker">
+              <div class="folder-picker-panel">
+                <div class="folder-picker-toolbar">
+                  <button type="button" id="btn-dir-up" class="btn btn-icon" disabled title="Parent folder" aria-label="Parent folder">↑</button>
+                  <button type="button" class="breadcrumb-btn" data-path="" title="Top locations">Locations</button>
+                  <span id="breadcrumb-tail" class="breadcrumb-path"></span>
+                </div>
+                <div id="dir-list" class="dir-list" role="group" aria-label="Browse folders — checkboxes add paths to the scan list"></div>
+              </div>
+            </div>
+            <div class="scanner-column scanner-column-right">
+              <p class="field-label">Scan targets</p>
+              <div id="scan-targets" class="scan-targets" aria-live="polite">
+                <span class="scan-targets-placeholder">No folders selected. Use checkboxes beside folders or the buttons below.</span>
+              </div>
+              <p class="hint folder-hint"><strong>How to scan:</strong> Select folders using the checkboxes on the left, then click <strong>Start scan</strong>. Each folder is scanned recursively, including all subfolders. Click on any folder name to navigate into it and see its contents. You must confirm the scan in the dialog that appears—nothing runs until you do.</p>
+              <div class="folder-actions-buttons folder-actions-wrap">
+                <button type="button" id="btn-add-scan-target" class="btn btn-ghost">Add current folder</button>
+                <button type="button" id="btn-use-only-folder" class="btn btn-ghost">Use only this folder</button>
+                <button type="button" id="btn-clear-scan-targets" class="btn btn-ghost">Clear all</button>
+                <button type="button" id="btn-start-scan" class="btn btn-primary" disabled>Start scan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="scan-progress" class="card scan-progress hidden">
+          <h2>Scan in progress</h2>
+          <p id="scan-hint-banner" class="scan-hint-banner hidden" role="status"></p>
+          <p id="scan-target-summary" class="scan-target-summary hidden">Target(s): <code id="scan-target-summary-value"></code></p>
+          <p class="scan-elapsed">Elapsed: <strong id="scan-elapsed">0:00</strong></p>
+          <p class="counter">Files scanned: <strong id="scanned-count">0</strong> / <strong id="total-files">0</strong></p>
+          <p class="counter">Malicious found: <strong id="malicious-count">0</strong></p>
+          <p class="counter">Scan errors: <strong id="scan-error-count">0</strong></p>
+          <p id="scan-last-error" class="hint hidden"></p>
+          <p class="current-file">Scanning: <code id="current-file">—</code></p>
+          <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+        </div>
+
+        <div id="malicious-banner" class="card malicious-banner hidden">
+          <h2>Malicious files detected</h2>
+          <div id="malicious-list" class="malicious-list"></div>
+        </div>
+        <div id="scan-details" class="card scan-details hidden">
+          <h2>Scan details</h2>
+          <p>Effective throughput: <strong id="stat-fps">—</strong> files/second</p>
+          <p>Files scanned: <strong id="stat-scanned">0</strong> / <strong id="stat-total">0</strong></p>
+          <p>Estimated remaining time: <strong id="stat-eta">—</strong></p>
+        </div>
+      </section>
+
+      <section id="pane-settings" class="pane">
+        <div class="card">
+          <h2>Vision One File Security settings</h2>
+          <p class="hint">Configure your Trend Vision One API key and region here. These values are saved and used for all scans. You can change them anytime.</p>
+          <p class="hint hint-storage">Config is loaded from saved storage (e.g. Docker volume at /data). It persists across container restarts—so after a redeploy you may still see a previously saved key until you enter and save a new one.</p>
+          <form id="form-config">
+            <div class="settings-block">
+              <p class="field-label">Scanner provider</p>
+              <div class="provider-grid">
+                <label class="provider-card">
+                  <input type="radio" name="scannerType" value="saas" checked>
+                  <span class="provider-title">TrendAI Vision One File Security - SaaS Scanner</span>
+                  <span class="provider-subtitle">Cloud scanner using Vision One region and API key.</span>
+                </label>
+                <label class="provider-card">
+                  <input type="radio" name="scannerType" value="local">
+                  <span class="provider-title">TrendAI Vision One File Security - Local Scanner</span>
+                  <span class="provider-subtitle">On-prem gRPC gateway.</span>
+                </label>
+              </div>
+            </div>
+            <div id="scanner-saas-wrap" class="settings-block">
+            <label>
+              API Key
+              <input type="password" id="input-apikey" placeholder="Enter or update your API key" autocomplete="off">
+              <span id="config-apikey-masked" class="masked"></span>
+            </label>
+            <label>
+              Region
+              <select id="input-region">
+                <option value="">Select region</option>
+                <option value="us-east-1">us-east-1</option>
+                <option value="eu-central-1">eu-central-1</option>
+                <option value="eu-west-2">eu-west-2</option>
+                <option value="ca-central-1">ca-central-1</option>
+                <option value="ap-southeast-1">ap-southeast-1</option>
+                <option value="ap-southeast-2">ap-southeast-2</option>
+                <option value="ap-northeast-1">ap-northeast-1</option>
+                <option value="ap-south-1">ap-south-1</option>
+                <option value="me-central-1">me-central-1</option>
+              </select>
+            </label>
+            </div>
+            <div id="scanner-local-wrap" class="hidden settings-block local-config-block">
+              <p class="field-label">On-prem scanner gateway</p>
+              <p class="hint">Connects to the Vision One File Security gateway.</p>
+              <label>
+                Local scanner endpoint
+                <input type="text" id="input-local-scanner-url" placeholder="host:port" autocomplete="off">
+              </label>
+              <p id="local-endpoint-hint" class="hint local-endpoint-hint">Enter scanner host and port (e.g., 192.168.200.70:31052)</p>
+              <label>
+                Local scanner API key (optional)
+                <input type="password" id="input-local-scanner-apikey" placeholder="Optional token/key" autocomplete="off">
+              </label>
+            </div>
+            <div class="config-action-row">
+              <button type="button" class="btn btn-ghost" id="btn-test-scanner">Test scanner connection</button>
+              <button type="button" class="btn btn-ghost" id="btn-compat-scanner">Test malware detection</button>
+              <button type="submit" class="btn btn-primary">Save scanner settings</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Actions & performance</h2>
+          <p class="hint">Choose what to do when a malicious file is found and how aggressive scans should be.</p>
+          <div class="tabs-container">
+            <div class="tabs-nav">
+              <button type="button" class="tab-button tab-button-active" data-tab="actions-tab">When Malware is Detected</button>
+              <button type="button" class="tab-button" data-tab="performance-tab">Advanced Options</button>
+              <button type="button" class="tab-button" data-tab="tags-tab">Scan Tags</button>
+            </div>
+            <form id="form-scan-action">
+              <div id="actions-tab" class="tab-content tab-content-active">
+                <div class="tab-card">
+                  <p class="field-label">Choose an action</p>
+                  <div class="action-options">
+                    <label class="radio-label">
+                      <input type="radio" name="actionOnMalware" value="log" checked> Log only — record in report and banner, keep file
+                    </label>
+                    <label class="radio-label">
+                      <input type="radio" name="actionOnMalware" value="quarantine"> Move to quarantine folder
+                    </label>
+                    <div id="quarantine-path-wrap" class="quarantine-path-wrap hidden">
+                      <label>
+                        Quarantine folder path
+                        <input type="text" id="input-quarantine-path" placeholder="e.g. /data/quarantine">
+                      </label>
+                    </div>
+                    <label class="radio-label">
+                      <input type="radio" name="actionOnMalware" value="delete"> Delete malicious file
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div id="performance-tab" class="tab-content">
+                <div class="tab-card">
+                  <p class="field-label">Scan optimization</p>
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="input-hash-enabled"> Generate SHA-256 hashes for malicious files (slower scans)
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="input-predictive-ml"> Enable predictive machine learning (PML)
+                  </label>
+                </div>
+                <div class="tab-card">
+                  <p class="field-label">Concurrency & reporting</p>
+                  <label>
+                    Maximum simultaneous scans
+                    <input type="number" id="input-max-concurrent-scans" min="0" max="10000" placeholder="0 = unlimited" title="Maximum number of scans that can run at the same time (0 = unlimited).">
+                  </label>
+                  <p class="hint">Control how many scan jobs can run at once (0 = unlimited).</p>
+                  <label>
+                    Report generation mode
+                    <select id="input-report-mode">
+                      <option value="stats">Statistics only (summary + malicious list)</option>
+                      <option value="all">All files (malicious first, then clean files)</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              <div id="tags-tab" class="tab-content">
+                <div class="tab-card">
+                  <p class="field-label">Vision One scan tags</p>
+                  <p class="hint">Optional tags sent with every file scan for Vision One filtering.</p>
+                  <div id="scan-tags-chips" class="scan-tags-chips" aria-label="Saved scan tags"></div>
+                  <input type="text" id="input-scan-tag-entry" class="scan-tag-entry" placeholder="Type a tag, press Enter" maxlength="128" autocomplete="off" spellcheck="false" aria-label="Add scan tag">
+                  <p class="hint hint-small">Press Enter to add tags. Use × on a chip to remove. <code>v1fs-scanner</code> is always added by the app. Max 32 tags.</p>
+                </div>
+              </div>
+              <div class="scan-action-footer">
+                <button type="submit" class="btn btn-primary">Save all settings</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Test options</h2>
+          <p class="hint">Test samples are created automatically when the app starts. Use them to verify that malicious files are detected and clean files are not.</p>
+          <ul class="test-samples-list">
+            <li><strong>malware-test.com</strong> — Standard AV test file (should be detected as malicious)</li>
+            <li><strong>hello.txt</strong> — Plain text file with "Hello World" (should be clean)</li>
+          </ul>
+          <p class="test-samples-path">Path in container: <code id="test-samples-path">/data/test-samples</code></p>
+          <label>
+            Destination folder for test files
+            <input type="text" id="input-test-dest" placeholder="/data/test-target">
+          </label>
+          <p class="hint">Each run creates a unique subfolder under the destination (e.g. <code>v1fs-test-…</code>) with only that sample file, then scans that folder. This avoids picking up other files such as <code>test-samples/malware-test.com</code> when the parent is broad (e.g. <code>/data</code>).</p>
+          <div class="test-buttons">
+            <button type="button" id="btn-test-eicar" class="btn btn-primary">Submit malware test file</button>
+            <button type="button" id="btn-test-clean" class="btn">Submit clean test file</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="pane-history" class="pane">
+        <div class="card">
+          <h2>Scan history</h2>
+          <div id="history-list" class="history-list"></div>
+        </div>
+      </section>
+    </main>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

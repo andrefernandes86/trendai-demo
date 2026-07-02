@@ -1,0 +1,21 @@
+# Run the app or tests as containers. Do not run Python/pytest on the host.
+# App:  docker compose up -d --build
+# Test: docker compose run --rm test
+services:
+  app:
+    build:
+      context: .
+      target: app
+    ports:
+      - "${EXT_PORT:-8000}:8000"
+    environment:
+      - EXT_PORT=8000
+    # env_file: .env
+    restart: unless-stopped
+
+  test:
+    build:
+      context: .
+      target: test
+    profiles:
+      - test

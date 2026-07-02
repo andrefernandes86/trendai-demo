@@ -1,0 +1,15 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Local env / secrets
+.env
+*.local
+
+# Portal runtime data (password store lives in a Docker volume, not the repo)
+portal/data/
+data/
+
+# OS
+.DS_Store
+Thumbs.db

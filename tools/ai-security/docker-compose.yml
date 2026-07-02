@@ -1,0 +1,217 @@
+version: '3.8'
+
+services:
+  # Database
+  database:
+    image: postgres:15-alpine
+    container_name: health-agent-database
+    environment:
+      POSTGRES_DB: health_agent
+      POSTGRES_USER: health_user
+      POSTGRES_PASSWORD: health_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - health-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: health-agent-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - health-network
+
+  # MinIO
+  minio:
+    image: minio/minio:latest
+    container_name: health-agent-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - health-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: health-agent-auth-service
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      FRONTEND_URL: http://192.168.1.100:3003
+    ports:
+      - "3001:3001"
+    depends_on:
+      - database
+    networks:
+      - health-network
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: health-agent-ai-service
+    environment:
+      PORT: 3004
+      OLLAMA_HOST: http://192.168.1.100:11434
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    ports:
+      - "3004:3004"
+    networks:
+      - health-network
+
+  # Nutrition Service
+  nutrition-service:
+    build:
+      context: ./nutrition-service
+      dockerfile: Dockerfile
+    container_name: health-agent-nutrition-service
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      AI_SERVICE_URL: http://ai-service:3004
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      OPENFOODFACTS_URL: https://static.openfoodfacts.org/data/en.openfoodfacts.org.products.csv.gz
+    ports:
+      - "3002:3002"
+    depends_on:
+      - database
+      - ai-service
+    networks:
+      - health-network
+
+  # Fitness Service
+  fitness-service:
+    build:
+      context: ./fitness-service
+      dockerfile: Dockerfile
+    container_name: health-agent-fitness-service
+    environment:
+      PORT: 3005
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      AI_SERVICE_URL: http://ai-service:3004
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    ports:
+      - "3005:3005"
+    depends_on:
+      - database
+      - ai-service
+    networks:
+      - health-network
+
+  # Report Service
+  report-service:
+    build:
+      context: ./report-service
+      dockerfile: Dockerfile
+    container_name: health-agent-report-service
+    environment:
+      PORT: 3006
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    ports:
+      - "3006:3006"
+    depends_on:
+      - database
+    networks:
+      - health-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: health-agent-notification-service
+    environment:
+      PORT: 3007
+      DATABASE_URL: postgresql://health_user:health_password@database:5432/health_agent
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    ports:
+      - "3007:3007"
+    depends_on:
+      - database
+    networks:
+      - health-network
+
+  # Security Scanner Service
+  security-scanner:
+    build:
+      context: ./security-scanner
+      dockerfile: Dockerfile
+      args:
+        TMAS_VERSION: latest
+        BUILD_DATE: ${BUILD_DATE:-$(date +%Y%m%d_%H%M%S)}
+    container_name: health-agent-security-scanner
+    environment:
+      PORT: 3008
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      TMAS_API_KEY: your-actual-api-key-here
+    ports:
+      - "3008:3008"
+    networks:
+      - health-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: health-agent-api-gateway
+    environment:
+      PORT: 8080
+      AUTH_SERVICE_URL: http://auth-service:3001
+      AI_SERVICE_URL: http://ai-service:3004
+      NUTRITION_SERVICE_URL: http://nutrition-service:3002
+      FITNESS_SERVICE_URL: http://fitness-service:3005
+      REPORT_SERVICE_URL: http://report-service:3006
+      NOTIFICATION_SERVICE_URL: http://notification-service:3007
+      SECURITY_SCANNER_URL: http://security-scanner:3008
+      FRONTEND_URL: http://192.168.1.100:3003
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - ai-service
+      - nutrition-service
+      - fitness-service
+      - report-service
+      - notification-service
+      - security-scanner
+    networks:
+      - health-network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: health-agent-frontend
+    ports:
+      - "3003:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - health-network
+
+networks:
+  health-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:

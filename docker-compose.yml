@@ -1,0 +1,81 @@
+# =============================================================================
+# TrendAI Demo Platform — top-level orchestration
+#
+#   docker compose up -d --build           # bring up the whole platform
+#   docker compose up -d --build \          # bring up only the core (skip the
+#     portal v1fs-scanner app-sec smish     #   heavy multi-service AI stack)
+#
+# Portal:            http://<host>:8088   (login gate — default admin / admin)
+# V1 File Scanner:   http://<host>:8081
+# App & File Sec:    http://<host>:8000
+# Smish Detector:    https://<host>:8443  (self-signed cert)
+# AI Security app:   http://<host>:3003   (from the included stack below)
+#
+# Requires Docker Compose v2.20+ (for the `include:` directive).
+# =============================================================================
+
+name: trendai-demo
+
+# Pull the full "Health AI Assistant" AI-security stack (frontend :3003,
+# api-gateway :8080, plus postgres/redis/minio and its microservices) in as-is.
+include:
+  - path: tools/ai-security/docker-compose.yml
+
+services:
+  # --- The branded login portal + demo hub --------------------------------
+  portal:
+    build:
+      context: ./portal
+    container_name: trendai-portal
+    ports:
+      - "8088:3000"
+    environment:
+      PORTAL_PORT: "3000"
+      PORTAL_DATA_DIR: /data
+    volumes:
+      - portal_data:/data
+    restart: unless-stopped
+
+  # --- V1 File Security Scanner (Go) --------------------------------------
+  # Host 8081 (the tool defaults to 8080, which the AI stack's api-gateway uses).
+  v1fs-scanner:
+    build:
+      context: ./tools/v1fs-manual-scan
+    container_name: trendai-v1fs-scanner
+    ports:
+      - "8081:8080"
+    volumes:
+      - v1fs_data:/data
+    restart: unless-stopped
+
+  # --- App & File Security (FastAPI) --------------------------------------
+  app-sec:
+    build:
+      context: ./tools/app-sec-file-sec
+      target: app
+    container_name: trendai-app-sec
+    ports:
+      - "8000:8000"
+    environment:
+      EXT_PORT: "8000"
+    restart: unless-stopped
+
+  # --- Smish Detector (Flask, HTTPS/self-signed) --------------------------
+  smish:
+    build:
+      context: ./tools/sms-dl
+    container_name: trendai-smish
+    ports:
+      - "8443:5000"
+    environment:
+      REPORT_PASSWORD: sms
+    volumes:
+      - smish_data:/app/static
+      - smish_ssl:/app/ssl
+    restart: unless-stopped
+
+volumes:
+  portal_data:
+  v1fs_data:
+  smish_data:
+  smish_ssl:

