@@ -1,15 +1,18 @@
+/* Canonical TrendAI design tokens — matches portal/public/styles.css and the
+   Agentic SIEM Sizing Calculator, so every tool in the platform looks and
+   feels like one product. */
 :root {
-  --bg: #0b0e15;
-  --surface: #161c29;
-  --surface2: #262f42;
-  --text: #eef2f8;
-  --text-muted: #94a1b8;
-  --accent: #d71920;
-  --accent-hover: #b0141a;
+  --bg: #1a1a2e;
+  --surface: #252540;
+  --surface2: #4a4a6a;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --accent: #d71921;
+  --accent-hover: #a01218;
   --danger: #ff5f73;
-  --success: #35c48c;
+  --success: #10b981;
   --radius: 12px;
-  --font: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
 }
 
 * {
@@ -20,8 +23,8 @@ body {
   margin: 0;
   font-family: var(--font);
   background:
-    radial-gradient(1000px 550px at 95% -10%, rgba(215, 25, 32, 0.28), transparent 60%),
-    radial-gradient(850px 420px at -5% 110%, rgba(215, 25, 32, 0.2), transparent 60%),
+    radial-gradient(1000px 550px at 95% -10%, rgba(215, 25, 33, 0.28), transparent 60%),
+    radial-gradient(850px 420px at -5% 110%, rgba(215, 25, 33, 0.2), transparent 60%),
     var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -37,7 +40,7 @@ body {
 
 .side-nav {
   width: 260px;
-  background: linear-gradient(180deg, #0b0e15 0%, #080b12 100%);
+  background: linear-gradient(180deg, #1a1a2e 0%, #151527 100%);
   border-right: 1px solid var(--surface2);
   padding: 1rem 0.75rem 1.5rem;
   display: flex;
@@ -59,8 +62,8 @@ body {
   height: 18px;
   border-radius: 6px;
   display: inline-block;
-  background: conic-gradient(from 140deg, #ef2b33, #d71920 40%, #ef4b52 75%, #ef2b33 100%);
-  box-shadow: 0 0 0 3px rgba(215, 25, 32, 0.25);
+  background: conic-gradient(from 140deg, #e5343b, #d71921 40%, #eb555c 75%, #e5343b 100%);
+  box-shadow: 0 0 0 3px rgba(215, 25, 33, 0.25);
 }
 
 .brand-wordmark {
@@ -99,9 +102,9 @@ body {
 }
 
 .side-nav-item-active {
-  background: linear-gradient(90deg, rgba(215, 25, 32, 0.2), rgba(239, 43, 51, 0.12));
+  background: linear-gradient(90deg, rgba(215, 25, 33, 0.2), rgba(229, 52, 59, 0.12));
   color: #eef2f8;
-  border: 1px solid rgba(239, 43, 51, 0.25);
+  border: 1px solid rgba(229, 52, 59, 0.25);
 }
 
 .shell-main {
@@ -147,7 +150,7 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.45);
   font-size: 0.75rem;
   color: #eef2f8;
-  background: rgba(215, 25, 32, 0.08);
+  background: rgba(215, 25, 33, 0.08);
 }
 
 .header-chip-muted {
@@ -251,12 +254,12 @@ body {
 }
 
 .card {
-  background: linear-gradient(180deg, rgba(22, 28, 41, 0.96), rgba(18, 23, 34, 0.95));
-  border: 1px solid rgba(38, 47, 66, 0.33);
+  background: linear-gradient(180deg, rgba(37, 37, 64, 0.96), rgba(45, 45, 68, 0.95));
+  border: 1px solid rgba(74, 74, 106, 0.33);
   border-radius: var(--radius);
   padding: 1.25rem;
   margin-bottom: 1rem;
-  box-shadow: 0 20px 45px rgba(11, 14, 21, 0.45);
+  box-shadow: 0 20px 45px rgba(26, 26, 46, 0.45);
 }
 
 .card h2 {
@@ -304,8 +307,8 @@ body {
 
 .folder-picker-panel {
   border-radius: var(--radius);
-  border: 1px solid rgba(38, 47, 66, 0.45);
-  background: linear-gradient(165deg, rgba(18, 23, 34, 0.98), rgba(11, 14, 21, 0.92));
+  border: 1px solid rgba(74, 74, 106, 0.45);
+  background: linear-gradient(165deg, rgba(45, 45, 68, 0.98), rgba(26, 26, 46, 0.92));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 32px rgba(0, 0, 0, 0.35);
   overflow: hidden;
 }
@@ -316,8 +319,8 @@ body {
   align-items: center;
   gap: 0.4rem;
   padding: 0.55rem 0.65rem;
-  background: rgba(11, 14, 21, 0.85);
-  border-bottom: 1px solid rgba(38, 47, 66, 0.28);
+  background: rgba(26, 26, 46, 0.85);
+  border-bottom: 1px solid rgba(74, 74, 106, 0.28);
   font-size: 0.88rem;
 }
 
@@ -326,15 +329,15 @@ body {
   padding: 0.35rem 0.5rem;
   font-size: 1rem;
   line-height: 1;
-  background: rgba(38, 47, 66, 0.9);
+  background: rgba(74, 74, 106, 0.9);
   color: var(--accent);
   border: 1px solid rgba(148, 163, 184, 0.4);
   border-radius: 8px;
 }
 
 .btn-icon:hover:not(:disabled) {
-  background: rgba(215, 25, 32, 0.18);
-  border-color: rgba(239, 75, 82, 0.45);
+  background: rgba(215, 25, 33, 0.18);
+  border-color: rgba(235, 85, 92, 0.45);
 }
 
 .btn-icon:disabled {
@@ -343,7 +346,7 @@ body {
 }
 
 .breadcrumb-btn {
-  background: rgba(38, 47, 66, 0.75);
+  background: rgba(74, 74, 106, 0.75);
   border: 1px solid rgba(148, 163, 184, 0.35);
   color: var(--accent);
   padding: 0.3rem 0.65rem;
@@ -354,8 +357,8 @@ body {
 }
 
 .breadcrumb-btn:hover {
-  background: rgba(215, 25, 32, 0.15);
-  border-color: rgba(239, 75, 82, 0.45);
+  background: rgba(215, 25, 33, 0.15);
+  border-color: rgba(235, 85, 92, 0.45);
 }
 
 .breadcrumb-path {
@@ -374,7 +377,7 @@ body {
   overflow-y: auto;
   margin: 0;
   padding: 0.35rem 0;
-  scrollbar-color: rgba(215, 25, 32, 0.45) rgba(11, 14, 21, 0.5);
+  scrollbar-color: rgba(215, 25, 33, 0.45) rgba(26, 26, 46, 0.5);
 }
 
 .dir-list:empty::before {
@@ -398,7 +401,7 @@ body {
 .dir-item-row {
   display: flex;
   align-items: stretch;
-  border-bottom: 1px solid rgba(38, 47, 66, 0.12);
+  border-bottom: 1px solid rgba(74, 74, 106, 0.12);
 }
 
 .dir-item-row:last-child {
@@ -438,7 +441,7 @@ body {
 }
 
 .dir-item-row:hover .dir-item-nav {
-  background: rgba(215, 25, 32, 0.1);
+  background: rgba(215, 25, 33, 0.1);
   box-shadow: inset 3px 0 0 var(--accent);
 }
 
@@ -465,7 +468,7 @@ body {
   border-radius: 3px 5px 3px 3px;
   background: linear-gradient(145deg, rgba(255, 193, 94, 0.35), rgba(255, 160, 72, 0.18));
   border: 1px solid rgba(255, 200, 120, 0.45);
-  box-shadow: 0 -3px 0 0 rgba(215, 25, 32, 0.35) inset;
+  box-shadow: 0 -3px 0 0 rgba(215, 25, 33, 0.35) inset;
 }
 
 .dir-item-label {
@@ -477,8 +480,8 @@ body {
   min-height: 2.5rem;
   padding: 0.5rem 0.65rem;
   border-radius: 10px;
-  background: rgba(11, 14, 21, 0.65);
-  border: 1px solid rgba(38, 47, 66, 0.28);
+  background: rgba(26, 26, 46, 0.65);
+  border: 1px solid rgba(74, 74, 106, 0.28);
   margin-bottom: 0.5rem;
   display: flex;
   flex-wrap: wrap;
@@ -499,8 +502,8 @@ body {
   max-width: 100%;
   padding: 0.25rem 0.35rem 0.25rem 0.55rem;
   border-radius: 8px;
-  background: rgba(215, 25, 32, 0.12);
-  border: 1px solid rgba(239, 75, 82, 0.35);
+  background: rgba(215, 25, 33, 0.12);
+  border: 1px solid rgba(235, 85, 92, 0.35);
   font-size: 0.8rem;
 }
 
@@ -612,8 +615,8 @@ body {
   gap: 0.25rem;
   padding: 0.25rem 0.35rem 0.25rem 0.65rem;
   border-radius: 999px;
-  background: rgba(215, 25, 32, 0.18);
-  border: 1px solid rgba(215, 25, 32, 0.45);
+  background: rgba(215, 25, 33, 0.18);
+  border: 1px solid rgba(215, 25, 33, 0.45);
   font-size: 0.88rem;
   color: #eef2f8;
   max-width: 100%;
@@ -634,7 +637,7 @@ body {
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(11, 14, 21, 0.45);
+  background: rgba(26, 26, 46, 0.45);
   color: var(--text-muted);
   font-size: 1.1rem;
   line-height: 1;
@@ -655,7 +658,7 @@ body {
   padding: 0.5rem 0.65rem;
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.45);
-  background: rgba(11, 14, 21, 0.65);
+  background: rgba(26, 26, 46, 0.65);
   color: var(--text);
   font: inherit;
 }
@@ -678,7 +681,7 @@ body {
 }
 
 .btn-ghost {
-  background: rgba(22, 28, 41, 0.55);
+  background: rgba(37, 37, 64, 0.55);
   color: var(--text-muted);
   border: 1px solid rgba(148, 163, 184, 0.35);
 }
@@ -689,7 +692,7 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #b0141a, #e5343b);
+  background: linear-gradient(135deg, #a01218, #e5343b);
   color: #fff;
   box-shadow: 0 8px 20px rgba(176, 20, 26, 0.35);
 }
@@ -707,8 +710,8 @@ body {
   margin: 0 0 1rem;
   padding: 0.85rem 1rem;
   border-radius: var(--radius);
-  background: rgba(215, 25, 32, 0.12);
-  border: 1px solid rgba(215, 25, 32, 0.35);
+  background: rgba(215, 25, 33, 0.12);
+  border: 1px solid rgba(215, 25, 33, 0.35);
   font-size: 0.92rem;
   color: var(--text);
 }
@@ -729,8 +732,8 @@ body {
 .collapsible-banner {
   margin: 0 0 1rem;
   border-radius: var(--radius);
-  background: rgba(215, 25, 32, 0.12);
-  border: 1px solid rgba(215, 25, 32, 0.35);
+  background: rgba(215, 25, 33, 0.12);
+  border: 1px solid rgba(215, 25, 33, 0.35);
   font-size: 0.92rem;
   color: var(--text);
   overflow: hidden;
@@ -751,7 +754,7 @@ body {
 }
 
 .collapsible-banner-toggle:hover {
-  background: rgba(215, 25, 32, 0.08);
+  background: rgba(215, 25, 33, 0.08);
 }
 
 .collapsible-toggle-icon {

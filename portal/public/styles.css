@@ -1,15 +1,22 @@
+/*
+ * Canonical TrendAI design tokens — sourced from the Agentic SIEM Sizing
+ * Calculator (tools/siem-calculator). Every page in this platform (portal,
+ * File Security, AI Guard, Smish) uses this exact palette so the product
+ * feels like one family.
+ */
 :root {
-  --tm-red: #d71920;
-  --tm-red-dark: #b0141a;
-  --bg: #0b0e15;
-  --bg-2: #121722;
-  --card: #161c29;
-  --card-hover: #1c2333;
-  --border: #262f42;
-  --text: #eef2f8;
-  --muted: #94a1b8;
-  --ok: #3ecf8e;
-  --warn: #f5a623;
+  --tm-red: #d71921;
+  --tm-red-dark: #a01218;
+  --bg: #1a1a2e;
+  --bg-2: #2d2d44;
+  --input-bg: #3d3d5c;
+  --card: #252540;
+  --card-hover: #2d2d44;
+  --border: #4a4a6a;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --ok: #10b981;
+  --warn: #f59e0b;
   --radius: 14px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
@@ -20,8 +27,8 @@
 body {
   margin: 0;
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(215, 25, 32, 0.18), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(215, 25, 32, 0.10), transparent 55%),
+    radial-gradient(1200px 600px at 80% -10%, rgba(215, 25, 33, 0.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(215, 25, 33, 0.10), transparent 55%),
     var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -61,7 +68,7 @@ label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px
 input[type="text"], input[type="password"] {
   width: 100%;
   padding: 12px 14px;
-  background: var(--bg-2);
+  background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
@@ -108,9 +115,8 @@ header.topbar {
   align-items: center;
   justify-content: space-between;
   padding: 18px 32px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(11, 14, 21, 0.7);
-  backdrop-filter: blur(8px);
+  border-bottom: 3px solid var(--tm-red);
+  background: linear-gradient(135deg, #1a0408 0%, var(--bg) 60%);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -134,7 +140,7 @@ header.topbar {
   width: 240px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
-  background: rgba(11, 14, 21, 0.5);
+  background: var(--bg-2);
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
@@ -210,7 +216,7 @@ header.topbar {
   width: 46px; height: 46px;
   border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(215, 25, 32, 0.14);
+  background: rgba(215, 25, 33, 0.14);
   color: var(--tm-red);
   margin-bottom: 14px;
 }
