@@ -137,7 +137,7 @@ restarts.
 | **V1 File Security Scanner** | `v1fs-scanner` | http://localhost:8081 | On-demand malware scanning via the Vision One File Security SDK; PDF reports |
 | **App & File Security** | `app-sec` | http://localhost:8000 | File-upload security pipeline scanning uploads through the Vision One SDK |
 | **Smish Detector** | `smish` | https://localhost:8443 | Smishing (SMS phishing) awareness demo — self-signed HTTPS |
-| **AI Security — Health AI Assistant** | `frontend`, `api-gateway`, `auth-service`, `ai-service`, `nutrition-service`, `fitness-service`, `report-service`, `notification-service`, `security-scanner`, `database`, `redis`, `minio` | http://localhost:3003 | GenAI app protected by Vision One AI Guard (prompt-injection / unsafe content) |
+| **AI Security — Health AI Assistant** | `frontend`, `api-gateway`, `auth-service`, `ai-service`, `fitness-service`, `report-service`, `notification-service`, `security-scanner`, `database`, `redis`, `minio` | http://localhost:3003 | GenAI app protected by Vision One AI Guard (prompt-injection / unsafe content) |
 
 Each demo's live "how to run it" script is shown directly on its card in the portal.
 
