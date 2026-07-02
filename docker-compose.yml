@@ -1,28 +1,24 @@
 # =============================================================================
 # TrendAI Demo Platform — top-level orchestration
 #
-#   docker compose up -d --build           # bring up the whole platform
-#   docker compose up -d --build \          # bring up only the core (skip the
-#     portal v1fs-scanner app-sec smish     #   heavy multi-service AI stack)
+#   docker compose up -d --build
 #
-# Portal:            http://<host>:8088   (login gate — default admin / admin)
-# V1 File Scanner:   http://<host>:8081
-# App & File Sec:    http://<host>:8000
-# Smish Detector:    https://<host>:8443  (self-signed cert)
-# AI Security app:   http://<host>:3003   (from the included stack below)
+# Only the portal is published on the host (8088). Every demo is reached
+# THROUGH the portal, which reverse-proxies it behind the login:
 #
-# Requires Docker Compose v2.20+ (for the `include:` directive).
+#   http://<host>:8088/          login gate (default admin / admin)
+#   http://<host>:8088/v1fs      V1 File Security Scanner   (auth required)
+#   http://<host>:8088/appsec    App & File Security        (auth required)
+#   http://<host>:8088/smish     Smish Detector             (auth required)
+#
+# The demo containers are NOT published on the host — they are only reachable
+# on the internal compose network via the authenticated portal.
 # =============================================================================
 
 name: trendai-demo
 
-# Pull the full "Health AI Assistant" AI-security stack (frontend :3003,
-# api-gateway :8080, plus postgres/redis/minio and its microservices) in as-is.
-include:
-  - path: tools/ai-security/docker-compose.yml
-
 services:
-  # --- The branded login portal + demo hub --------------------------------
+  # --- The branded login portal + demo hub + reverse proxy ----------------
   portal:
     build:
       context: ./portal
@@ -32,45 +28,38 @@ services:
     environment:
       PORTAL_PORT: "3000"
       PORTAL_DATA_DIR: /data
-      # When set (e.g. "secnerd.io"), demo shortcuts link to
-      # https://<subdomain>.<domain>/ so every demo rides one Cloudflare tunnel.
-      # Leave empty to link by host:port (localhost / VM / SSH tunnel).
-      PORTAL_DEMO_DOMAIN: ${PORTAL_DEMO_DOMAIN:-}
     volumes:
       - portal_data:/data
+    depends_on:
+      - v1fs-scanner
+      - app-sec
+      - smish
     restart: unless-stopped
 
-  # --- V1 File Security Scanner (Go) --------------------------------------
-  # Host 8081 (the tool defaults to 8080, which the AI stack's api-gateway uses).
+  # --- V1 File Security Scanner (Go) — internal only ----------------------
   v1fs-scanner:
     build:
       context: ./tools/v1fs-manual-scan
     container_name: trendai-v1fs-scanner
-    ports:
-      - "8081:8080"
     volumes:
       - v1fs_data:/data
     restart: unless-stopped
 
-  # --- App & File Security (FastAPI) --------------------------------------
+  # --- App & File Security (FastAPI) — internal only ----------------------
   app-sec:
     build:
       context: ./tools/app-sec-file-sec
       target: app
     container_name: trendai-app-sec
-    ports:
-      - "8000:8000"
     environment:
       EXT_PORT: "8000"
     restart: unless-stopped
 
-  # --- Smish Detector (Flask, HTTPS/self-signed) --------------------------
+  # --- Smish Detector (Flask, HTTPS/self-signed) — internal only ----------
   smish:
     build:
       context: ./tools/sms-dl
     container_name: trendai-smish
-    ports:
-      - "8443:5000"
     environment:
       REPORT_PASSWORD: sms
     volumes:

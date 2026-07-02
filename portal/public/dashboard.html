@@ -58,22 +58,15 @@
       }
     }
 
-    let PORTAL_CONFIG = { demoDomain: null };
-
     function buildUrl(demo) {
-      // Preferred: one Cloudflare hostname per demo (standard HTTPS/443).
-      if (PORTAL_CONFIG.demoDomain && demo.subdomain) {
-        return `https://${demo.subdomain}.${PORTAL_CONFIG.demoDomain}/`;
-      }
-      // Fallback: browser hostname + published port (localhost / VM / SSH tunnel).
-      return `${demo.protocol}://${window.location.hostname}:${demo.port}/`;
+      // Every demo is proxied by the portal on this same origin, under its path.
+      return window.location.origin + demo.path + '/';
     }
 
     function render() {
       const grid = document.getElementById('grid');
-      document.getElementById('hostBanner').textContent = PORTAL_CONFIG.demoDomain
-        ? 'Each demo opens on its own hostname under ' + PORTAL_CONFIG.demoDomain + ' via the Cloudflare tunnel.'
-        : 'Demos are served from host "' + window.location.hostname + '". If you are browsing over SSH/port-forwarding, make sure each demo port is forwarded too.';
+      document.getElementById('hostBanner').textContent =
+        'Each demo opens on this same site (' + window.location.host + ') and stays behind your login.';
 
       (window.TRENDAI_DEMOS || []).forEach((d) => {
         const url = buildUrl(d);
@@ -108,11 +101,7 @@
 
     (async () => {
       const s = await guard();
-      if (!s) return;
-      try {
-        PORTAL_CONFIG = await (await fetch('/api/portal-config')).json();
-      } catch (_) { /* fall back to host:port links */ }
-      render();
+      if (s) render();
     })();
   </script>
 </body>

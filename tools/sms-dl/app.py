@@ -1,9 +1,13 @@
 from flask import Flask, request, send_from_directory, render_template, jsonify, session, redirect, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os, sqlite3, hashlib, requests, json
 from datetime import datetime
 from user_agents import parse
 
 app = Flask(__name__)
+# Honour X-Forwarded-Prefix so url_for() generates correct links when this app
+# is reverse-proxied under a path prefix (e.g. /smish by the TrendAI portal).
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
 UPLOAD_FOLDER = 'uploads'
 DB_FILE = 'logs.db'

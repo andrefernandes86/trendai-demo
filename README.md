@@ -8,16 +8,19 @@ with a short "how to demo" script.
 The platform is intentionally read-only: once signed in, a presenter sees the
 demo shortcuts and instructions — there is no content-editing surface.
 
+The portal is also a **reverse proxy**: every demo is served on the *same*
+origin under a path (`/v1fs`, `/appsec`, `/smish`) and is only reachable after
+login. One hostname fronts everything, and nothing is exposed unauthenticated.
+
 ```
-                         ┌──────────────────────────────┐
-   browser  ───────────► │  Portal (login + hub)         │  :8088
-                         │  admin/admin → forced reset    │
-                         └──────────────┬─────────────────┘
-                                        │  shortcut links (open in new tab)
-        ┌───────────────────────────────┼───────────────────────────────┐
-        ▼                ▼               ▼                ▼               ▼
-  V1 File Scanner   App & File Sec   Smish Detector   AI Security stack (Health AI)
-      :8081             :8000          :8443 (https)      :3003  (+ supporting services)
+   browser ──► ┌───────────────────────────────────────────────┐  :8088
+               │  Portal — login gate (admin/admin) + hub +      │
+               │           reverse proxy (session required)      │
+               └───────┬──────────────┬──────────────┬───────────┘
+                       │ /v1fs         │ /appsec      │ /smish
+                       ▼               ▼              ▼
+                 V1 File Scanner   App & File Sec   Smish Detector
+                 (internal only)   (internal only)  (internal only)
 ```
 
 ---
@@ -101,7 +104,7 @@ as shown in the Linux steps above.
 
 ## Quick start
 
-Requires **Docker** and **Docker Compose v2.20+** (for the `include:` directive).
+Requires **Docker** and **Docker Compose v2.20+**.
 
 ```bash
 git clone https://github.com/andrefernandes86/trendai-demo.git
@@ -121,98 +124,63 @@ Log in with the default credentials **`admin` / `admin`**. On first login you ar
 hashed (scrypt) and stored in the `portal_data` Docker volume, so it survives
 restarts.
 
-> **Bring up only the lightweight core** (skip the heavy multi-service AI stack):
->
-> ```bash
-> docker compose up -d --build portal v1fs-scanner app-sec smish
-> ```
-
 ---
 
 ## What's included
 
-| Demo | Container(s) | URL | Purpose |
-|------|--------------|-----|---------|
-| **Portal** | `portal` | http://localhost:8088 | Login gate + demo hub (this app) |
-| **V1 File Security Scanner** | `v1fs-scanner` | http://localhost:8081 | On-demand malware scanning via the Vision One File Security SDK; PDF reports |
-| **App & File Security** | `app-sec` | http://localhost:8000 | File-upload security pipeline scanning uploads through the Vision One SDK |
-| **Smish Detector** | `smish` | https://localhost:8443 | Smishing (SMS phishing) awareness demo — self-signed HTTPS |
-| **AI Security — Health AI Assistant** | `frontend`, `api-gateway`, `auth-service`, `ai-service`, `fitness-service`, `report-service`, `notification-service`, `security-scanner`, `database`, `redis`, `minio` | http://localhost:3003 | GenAI app protected by Vision One AI Guard (prompt-injection / unsafe content) |
+Only the portal is published on the host (`8088`). Each demo runs in its own
+container on the internal network and is reached **through** the portal, under a
+path, only after logging in.
+
+| Demo | Container | Path (behind login) | Purpose |
+|------|-----------|---------------------|---------|
+| **Portal** | `portal` | `/` | Login gate + demo hub + reverse proxy (this app) |
+| **V1 File Security Scanner** | `v1fs-scanner` | `/v1fs` | On-demand malware scanning via the Vision One File Security SDK; PDF reports |
+| **App & File Security** | `app-sec` | `/appsec` | File-upload security pipeline scanning uploads through the Vision One SDK |
+| **Smish Detector** | `smish` | `/smish` | Smishing (SMS phishing) awareness demo |
 
 Each demo's live "how to run it" script is shown directly on its card in the portal.
 
-### Ports at a glance
+### How the reverse proxy works
 
-| Port | Service | | Port | Service |
-|------|---------|-|------|---------|
-| 8088 | Portal | | 3001–3008 | AI stack microservices |
-| 8081 | V1 File Scanner | | 3003 | AI stack frontend |
-| 8000 | App & File Security | | 8080 | AI stack API gateway |
-| 8443 | Smish Detector (https) | | 5433 / 6380 / 9002–9003 | Postgres / Redis / MinIO |
-
-> The V1 File Scanner is published on **8081** (not its native 8080) because the
-> AI-security stack's API gateway already uses 8080.
+- `/v1fs`, `/appsec`, `/smish` proxy to the demo containers with the prefix
+  stripped; the portal checks your login session first.
+- Each app keeps its own root-absolute asset/API paths (e.g. `/style.css`,
+  `/api/scan`). The portal routes those back to the right backend using the
+  request `Referer` (with an `x_app` cookie fallback), so the apps run unchanged.
+- The Smish (Flask) app is made prefix-aware via `X-Forwarded-Prefix` +
+  `ProxyFix` so its multi-page navigation stays under `/smish`.
 
 ---
 
 ## Prerequisites for individual demos
 
-Some tools need external services or keys. They still **start** without them —
-the AI-driven features simply won't function until configured.
+The demos **start** without any keys; the Vision One / AI features simply stay
+inert until configured.
 
 - **V1 File Security Scanner** — enter your Vision One File Security **API key +
   region** in the tool's own Settings UI (persisted to its volume).
 - **App & File Security** — a Vision One File Security API key, and optionally an
   **Ollama** endpoint for AI-assisted verdicts. See `tools/app-sec-file-sec`.
-- **AI Security (Health AI Assistant)** — an **Ollama** endpoint for LLM features
-  and a **TMAS API key** for the security scanner. Configure in the app's
-  Settings, or edit `tools/ai-security/docker-compose.yml`. This is a
-  multi-container stack; allow a minute for all services to become healthy.
-- **Smish Detector** — none. Serves over HTTPS with a self-signed certificate,
-  so your browser will show a certificate warning (expected). Report password
-  defaults to `sms` (`REPORT_PASSWORD` in `.env`).
+- **Smish Detector** — none. Report password defaults to `sms`
+  (`REPORT_PASSWORD` in `.env`). Educational use, controlled environments only.
 
 ---
 
-## Accessing from another machine
+## Putting it behind Cloudflare (one hostname, shared login)
 
-The portal builds each demo link from **the hostname in your browser's address
-bar** plus the demo's port. So if you browse the portal at `http://LAB-VM:8088`,
-the demo links automatically point at `http://LAB-VM:8081`, etc. — no
-configuration needed.
+Because everything is same-origin behind the portal, exposing the platform is
+simple: point **one** Cloudflare tunnel Public Hostname at the portal.
 
-If you reach the platform over SSH port-forwarding, forward each demo port too
-(8088, 8081, 8000, 8443, 3003, …), not just the portal port.
+| Public hostname | Service (origin) |
+|-----------------|------------------|
+| `trendai.<domain>` | `http://<host-ip>:8088` |
+
+That's it — the demos are served under `trendai.<domain>/v1fs`, `/appsec`,
+`/smish`, all gated by the portal login. No per-demo DNS, no extra ports, and it
+all runs over standard HTTPS/443 so it passes through corporate web proxies.
 
 ---
-
-## Serving all demos through one Cloudflare tunnel
-
-Behind a corporate proxy, only standard HTTPS (443) gets through — the raw demo
-ports (8081, 8000, 8443, 3003) don't. To expose everything over 443, give each
-demo its own hostname on a **single** Cloudflare tunnel (one `cloudflared`
-container):
-
-1. In the Cloudflare Zero Trust dashboard → your tunnel → **Public Hostnames**,
-   add one entry per demo (DNS is auto-created for domains on Cloudflare):
-
-   | Public hostname | Service (origin) | Notes |
-   |-----------------|------------------|-------|
-   | `trendai.<domain>` | `http://<host-ip>:8088` | portal |
-   | `v1fs.<domain>`    | `http://<host-ip>:8081` | |
-   | `appsec.<domain>`  | `http://<host-ip>:8000` | |
-   | `smish.<domain>`   | `https://<host-ip>:8443` | enable **No TLS Verify** (self-signed) |
-   | `ai.<domain>`      | `http://<host-ip>:3003` | frontend only — see note |
-
-2. Set `PORTAL_DEMO_DOMAIN=<domain>` in `.env` and recreate the portal. The hub
-   then links to `https://<subdomain>.<domain>/` instead of `host:port`. The
-   subdomains are defined in `portal/public/demos.js`.
-
-> **AI Security app caveat:** its React frontend calls its backend services by
-> `host:port` from the browser, so a single `ai.<domain>` hostname loads the UI
-> but its API calls won't traverse Cloudflare without additionally exposing the
-> API gateway and reconfiguring the app. The other three demos are single
-> containers and work fully over their subdomain.
 
 ## Resetting the portal password
 
@@ -231,17 +199,16 @@ docker compose up -d
 
 ```
 trendai-demo/
-├── docker-compose.yml         # top-level orchestration (+ includes the AI stack)
+├── docker-compose.yml         # top-level orchestration (portal + 3 demos)
 ├── .env.example
-├── portal/                    # the branded login gate + demo hub (Node/Express)
-│   ├── server.js              #   auth, forced password reset, static hosting
+├── portal/                    # branded login gate + demo hub + reverse proxy (Node/Express)
+│   ├── server.js              #   auth, forced reset, static hosting, demo proxy
 │   ├── Dockerfile
 │   └── public/                #   login / change-password / dashboard + demos.js
 └── tools/                     # vendored copies of each demo application
     ├── v1fs-manual-scan/      #   Trend Vision One File Security scanner (Go)
     ├── app-sec-file-sec/      #   App & File Security upload pipeline (FastAPI)
-    ├── sms-dl/                #   Smish Detector (Flask, HTTPS)
-    └── ai-security/           #   Health AI Assistant stack (compose included)
+    └── sms-dl/                #   Smish Detector (Flask)
 ```
 
 Each folder under `tools/` is a copy of its upstream repository, kept intact so

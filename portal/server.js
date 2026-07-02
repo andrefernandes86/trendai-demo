@@ -15,6 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cookieParser = require('cookie-parser');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const PORT = process.env.PORTAL_PORT || 3000;
 const DATA_DIR = process.env.PORTAL_DATA_DIR || '/data';
@@ -22,6 +23,17 @@ const AUTH_FILE = path.join(DATA_DIR, 'auth.json');
 const USERNAME = 'admin';
 const DEFAULT_PASSWORD = 'admin';
 const MIN_PASSWORD_LENGTH = 8;
+
+// ---------------------------------------------------------------------------
+// Demo apps proxied under a path prefix, all gated behind the portal login.
+// Each backend is reached by its docker-compose service name on the shared
+// network. `secure:false` skips TLS verification for the self-signed Smish app.
+// ---------------------------------------------------------------------------
+const DEMOS = {
+  v1fs:   { target: 'http://v1fs-scanner:8080', secure: true },
+  appsec: { target: 'http://app-sec:8000',      secure: true },
+  smish:  { target: 'https://smish:5000',       secure: false },
+};
 
 // ---------------------------------------------------------------------------
 // Password storage (scrypt — no native deps, ships with Node core)
@@ -92,8 +104,10 @@ function getSession(token) {
 // ---------------------------------------------------------------------------
 
 const app = express();
-app.use(express.json());
 app.use(cookieParser());
+// JSON body parsing is applied per-route (below) — NOT globally — so it never
+// consumes the body of a request that is about to be proxied to a demo backend.
+const jsonParser = express.json();
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
@@ -109,14 +123,61 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// --- Auth API -------------------------------------------------------------
+// Gate demo traffic: navigations (GET html) redirect to the login page;
+// XHR/asset requests get a 401 so they fail fast rather than returning HTML.
+function requireSessionForDemo(req, res, next) {
+  if (currentSession(req)) return next();
+  const accept = req.headers.accept || '';
+  if (req.method === 'GET' && accept.includes('text/html')) return res.redirect('/login');
+  return res.status(401).send('Not authenticated');
+}
 
-// Public (pre-auth) config the dashboard needs to build demo links. When
-// PORTAL_DEMO_DOMAIN is set (e.g. "secnerd.io"), the hub links to
-// https://<subdomain>.<domain>/ so all demos ride one Cloudflare tunnel.
-app.get('/api/portal-config', (_req, res) => {
-  res.json({ demoDomain: process.env.PORTAL_DEMO_DOMAIN || null });
-});
+// Which demo does a prefix-less request (e.g. /style.css, /api/scan) belong to?
+// Prefer the Referer path; fall back to the x_app cookie set when an app page
+// was served. Lets each backend keep its own root-absolute asset/API paths.
+function demoFromContext(req) {
+  const ref = req.headers.referer || '';
+  try {
+    const p = new URL(ref).pathname;
+    for (const name of Object.keys(DEMOS)) {
+      if (p === '/' + name || p.startsWith('/' + name + '/')) return name;
+    }
+  } catch (_) { /* no/invalid referer */ }
+  const cookie = req.cookies && req.cookies.x_app;
+  return DEMOS[cookie] ? cookie : null;
+}
+
+// Tag the browser with the active app so referer-less subresource requests can
+// still be routed, and forward the prefix so prefix-aware backends (Flask) can
+// build correct URLs.
+function markActiveApp(proxyRes, _req, res, name) {
+  if ((proxyRes.headers['content-type'] || '').includes('text/html')) {
+    const prev = proxyRes.headers['set-cookie'] || [];
+    proxyRes.headers['set-cookie'] = [].concat(prev, `x_app=${name}; Path=/; SameSite=Lax`);
+  }
+}
+
+function makeProxy(name) {
+  const cfg = DEMOS[name];
+  return createProxyMiddleware({
+    target: cfg.target,
+    changeOrigin: true,
+    secure: cfg.secure,
+    xfwd: true,
+    on: {
+      proxyReq: (proxyReq) => proxyReq.setHeader('X-Forwarded-Prefix', '/' + name),
+      proxyRes: (proxyRes, req, res) => markActiveApp(proxyRes, req, res, name),
+    },
+  });
+}
+
+// One configured proxy per demo. Prefix stripping is done by rewriting req.url
+// before invoking the proxy (see below), so behaviour doesn't depend on how the
+// proxy library treats Express mount paths.
+const proxies = {};
+for (const name of Object.keys(DEMOS)) proxies[name] = makeProxy(name);
+
+// --- Auth API -------------------------------------------------------------
 
 app.get('/api/session', (req, res) => {
   const session = currentSession(req);
@@ -128,7 +189,7 @@ app.get('/api/session', (req, res) => {
   });
 });
 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', jsonParser, (req, res) => {
   // Single-user portal: the account is always "admin", so we don't reject on a
   // mis-autofilled username. Trim the password to absorb stray whitespace/newlines
   // that password managers sometimes append.
@@ -152,7 +213,7 @@ app.post('/api/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/change-password', requireAuth, (req, res) => {
+app.post('/api/change-password', jsonParser, requireAuth, (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   const auth = loadAuth();
   // Trim consistently with login so a stored password always matches what the
@@ -203,7 +264,37 @@ app.get(['/change-password', '/change-password.html'], (req, res) => {
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
 // Static assets (css/js/svg). No directory listing; pages are routed above.
+// The portal's own files (styles.css, logo.svg, demos.js) are served here;
+// anything not found falls through to the demo proxy / catch-all below.
 app.use(express.static(PUBLIC_DIR, { index: false, extensions: [] }));
+
+// --- Demo reverse proxy (auth-gated) --------------------------------------
+// /v1fs, /appsec, /smish -> the demo backends, with the prefix stripped from
+// req.url so the backend sees its own root paths.
+for (const name of Object.keys(DEMOS)) {
+  const pfx = '/' + name;
+  app.use((req, res, next) => {
+    if (req.path !== pfx && !req.path.startsWith(pfx + '/')) return next();
+    // Normalise "/v1fs" -> "/v1fs/" so relative assets and the Referer resolve
+    // against the prefix.
+    if (req.path === pfx) return res.redirect(301, pfx + '/');
+    return requireSessionForDemo(req, res, () => {
+      req.url = req.url.slice(pfx.length) || '/';
+      if (req.url[0] !== '/') req.url = '/' + req.url;
+      proxies[name](req, res, next);
+    });
+  });
+}
+
+// Referer/cookie catch-all: routes an app's root-absolute requests
+// (e.g. /style.css, /api/scan, /analytics) back to the backend that served the
+// page — passed through unchanged. Portal routes and static files are matched
+// earlier, so only unmatched paths reach here.
+app.use((req, res, next) => {
+  const name = demoFromContext(req);
+  if (!name) return next(); // -> 404
+  return requireSessionForDemo(req, res, () => proxies[name](req, res, next));
+});
 
 app.listen(PORT, () => {
   loadAuth(); // ensure the store is seeded on boot
