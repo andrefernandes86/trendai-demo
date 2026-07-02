@@ -33,7 +33,7 @@ window.TRENDAI_DEMOS = [
     category: 'Demo Tools',
     path: '/appsec',
     title: 'TrendAI Vision One AI Guard & File Security',
-    subtitle: 'Use Case · Securing an AI Chatbot with File Uploads',
+    subtitle: 'Use Case · Securing an AI Chatbots',
     icon: 'file',
     desc: 'Use case: an AI chatbot that lets users chat and upload files. Two TrendAI Vision One modules protect it — AI Guard inspects every prompt for injection/abuse, and File Security scans every uploaded file for malware before it is accepted.',
     steps: [
@@ -49,7 +49,7 @@ window.TRENDAI_DEMOS = [
   },
   {
     id: 'smish',
-    category: 'Demo Tools',
+    category: 'Other',
     path: '/smish',
     title: 'Smish Detector',
     subtitle: 'Smishing Awareness · Education',

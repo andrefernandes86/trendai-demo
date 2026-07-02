@@ -270,7 +270,11 @@ details.demo ol { margin: 12px 0 4px; padding-left: 20px; color: var(--muted); f
 details.demo ol li { margin-bottom: 6px; }
 .tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
 .tag { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--border); color: var(--muted); }
-.card .actions { margin-top: 16px; display: flex; align-items: center; gap: 10px; }
+/* margin-top: auto pins the button row to the bottom of the card. Since
+   CSS Grid stretches all cards in a row to equal height, this keeps every
+   "Open" button aligned across a row regardless of how long a card's
+   description/tags/steps run. */
+.card .actions { margin-top: auto; padding-top: 16px; display: flex; align-items: center; gap: 10px; }
 .open-btn {
   flex: 1;
   text-align: center;
