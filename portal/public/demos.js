@@ -67,7 +67,7 @@ window.TRENDAI_DEMOS = [
   },
   {
     id: 'siemcalc',
-    category: 'Other',
+    category: 'Business Tools',
     path: '/siemcalc',
     title: 'TrendAI Agentic SIEM Sizing Calculator',
     subtitle: 'Sizing · Credit Calculator',
