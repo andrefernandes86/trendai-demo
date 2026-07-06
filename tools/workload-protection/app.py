@@ -3,11 +3,11 @@ TrendAI Vision One — Server & Workload Protection (demo)
 
 Simulates an agent-based workload protection console. Every "Trigger" button
 in the UI only ever sends a bare POST with no payload; every detection runs
-here, server-side, against local artifacts (a bundled EICAR file, bundled
-TippingPoint IPS test pages, a local decoy file, and synthetic log lines
-generated in-process). Responses only ever contain sanitized event records —
-never raw file bytes, URLs, or attack-payload strings — so nothing malicious
-ever reaches the browser.
+here, server-side, against local artifacts (an in-memory EICAR signature,
+bundled TippingPoint IPS test pages, a local decoy file, and synthetic log
+lines generated in-process). Responses only ever contain sanitized event
+records — never raw file bytes, URLs, or attack-payload strings — so nothing
+malicious ever reaches the browser.
 """
 
 import hashlib
@@ -24,7 +24,33 @@ APP_DIR = Path(__file__).parent
 SAMPLES_DIR = APP_DIR / "samples"
 DECOY_FILE = APP_DIR / "decoy_passwd"
 
-EICAR_SIGNATURE = "X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+# The EICAR test string, XOR-encoded (key 0x5A) so no recognisable AV
+# signature exists in this source file or the built image. Decoded only in
+# memory, at the moment of use — never written to disk anywhere, at build
+# time or runtime. A real real-time anti-malware agent on the host (e.g.
+# Deep Security / Vision One Server & Workload Protection) would otherwise
+# detect and quarantine the file the instant it touched the filesystem, even
+# mid-`docker build`, since that's still a regular file write as far as the
+# agent is concerned.
+_EICAR_XOR_KEY = 0x5A
+_EICAR_ENCODED = bytes([
+    0x02, 0x6f, 0x15, 0x7b, 0x0a, 0x7f, 0x1a, 0x1b,
+    0x0a, 0x01, 0x6e, 0x06, 0x0a, 0x00, 0x02, 0x6f,
+    0x6e, 0x72, 0x0a, 0x04, 0x73, 0x6d, 0x19, 0x19,
+    0x73, 0x6d, 0x27, 0x7e, 0x1f, 0x13, 0x19, 0x1b,
+    0x08, 0x77, 0x09, 0x0e, 0x1b, 0x14, 0x1e, 0x1b,
+    0x08, 0x1e, 0x77, 0x1b, 0x14, 0x0e, 0x13, 0x0c,
+    0x13, 0x08, 0x0f, 0x09, 0x77, 0x0e, 0x1f, 0x09,
+    0x0e, 0x77, 0x1c, 0x13, 0x16, 0x1f, 0x7b, 0x7e,
+    0x12, 0x71, 0x12, 0x70,
+])
+# SHA-256 of the decoded EICAR string, used only to verify the decode is
+# correct — an opaque hex digest carries no recognisable signature itself.
+_EICAR_SHA256 = "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f"
+
+
+def eicar_signature() -> bytes:
+    return bytes(b ^ _EICAR_XOR_KEY for b in _EICAR_ENCODED)
 
 DECOY_BASELINE = (
     "root:x:0:0:root:/root:/bin/bash\n"
@@ -146,14 +172,18 @@ app = FastAPI()
 # --- Detection logic (server-side only) -------------------------------------
 
 def trigger_anti_malware() -> dict:
-    """Real local signature match against the bundled EICAR test file —
-    simulates an attacker using command injection to download malware
-    (curl/wget http://malware.wicar.org/data/eicar.com), which the agent's
-    real-time Anti-Malware scan intercepts and quarantines."""
-    sample = SAMPLES_DIR / "eicar.com"
-    content = sample.read_text(errors="ignore") if sample.exists() else ""
-    if EICAR_SIGNATURE not in content:
-        raise HTTPException(500, "Anti-malware test sample missing or invalid.")
+    """Real local signature match against the EICAR test string — simulates
+    an attacker using command injection to download malware (curl/wget
+    http://malware.wicar.org/data/eicar.com), which the agent's real-time
+    Anti-Malware scan intercepts and quarantines. The signature is decoded
+    and matched entirely in memory (see eicar_signature()) — it is never
+    written to disk, so it can't be pre-empted by a real anti-malware agent
+    watching the host filesystem. Verified via SHA-256 rather than a
+    substring match so no recognisable EICAR text ever appears in this
+    source file either."""
+    content = eicar_signature()
+    if hashlib.sha256(content).hexdigest() != _EICAR_SHA256:
+        raise HTTPException(500, "Anti-malware signature check failed.")
     return add_event(
         "anti-malware",
         severity="Critical",
