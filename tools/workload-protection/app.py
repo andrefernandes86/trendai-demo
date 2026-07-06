@@ -263,6 +263,12 @@ def trigger_web_reputation() -> dict:
             urllib.request.urlopen(f"{scheme}://{target['domain']}/", timeout=5)
             outcome = "Connection succeeded (no outbound block observed from here)."
             break
+        except urllib.error.HTTPError as e:
+            # The connection succeeded at the network layer — the target
+            # just returned an HTTP error status. That's still "reached it",
+            # not a block, so don't fall through to trying the other scheme.
+            outcome = f"Connection succeeded (HTTP {e.code} — no outbound block observed from here)."
+            break
         except (urllib.error.URLError, socket.timeout, OSError) as e:
             outcome = f"Connection blocked/failed ({e}) — consistent with a Web Reputation block."
     return add_event(
@@ -289,6 +295,11 @@ def _send_ips_probe_to_portal(body: bytes | None, query: str | None) -> str:
         req = urllib.request.Request(url, data=body, method="POST" if body else "GET")
         urllib.request.urlopen(req, timeout=5)
         return "Request reached the target (no inline block observed from here)."
+    except urllib.error.HTTPError as e:
+        # The connection succeeded at the network layer — /probe isn't a
+        # real route, so a plain HTTP error here is expected and is NOT
+        # indicative of a network-level IPS block.
+        return f"Request reached the target (HTTP {e.code} — no inline block observed from here)."
     except (urllib.error.URLError, socket.timeout, OSError) as e:
         return f"Request blocked/reset ({e}) — consistent with an inline IPS block."
 
