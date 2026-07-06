@@ -24,7 +24,6 @@ EICAR bytes, the target URL, or the exploit payload string.
 """
 
 import hashlib
-import random
 import re
 import socket
 import urllib.error
@@ -96,6 +95,10 @@ MODULES = {
 # over the network (to the portal container, internal to this compose
 # network — harmless, it just 404s) so a real inline IPS gets a genuine
 # packet to inspect.
+GITHUB_TIPPINGPOINT_BASE = (
+    "https://raw.githubusercontent.com/andrefernandes86/tools-malware-samples/main/tippingpoint/"
+)
+
 IPS_RULES = [
     {
         "id": "5670",
@@ -112,14 +115,43 @@ IPS_RULES = [
         "name": "SQL Injection Attack (Information Disclosure)",
         "payload": "' union all select load_file('/etc/passwd'),null #",
     },
+    # File-based rules: the payload is fetched from GitHub straight into
+    # memory at trigger time, then immediately forwarded over the network —
+    # never written to disk at any point (build time or runtime). This is
+    # what let us bring these back safely after the original build-time-fetch
+    # approach got them quarantined by a real Anti-Malware/IPS agent.
+    {
+        "id": "3990",
+        "name": "HTTP: Microsoft Internet Explorer ObjectType Memory Corruption (MS03-020)",
+        "remote_file": "3990_ms03_020_ie_objecttype.html",
+    },
+    {
+        "id": "3775",
+        "name": "HTTP: Shell.Application ActiveX Control Execution (MS14-064)",
+        "remote_file": "3775_ms14_064_ole_xp.html",
+    },
+    {
+        "id": "9893",
+        "name": "HTTP: Microsoft Internet Explorer Remote Code Execution (MS09-072)",
+        "remote_file": "9893_ms09_072_style_object.html",
+    },
+    {
+        "id": "23799",
+        "name": "HTTP: Obfuscated HTML Usage (MS05-054)",
+        "remote_file": "23799_ms05_054_onload.html",
+    },
 ]
 
-# Real, public, well-known test domains used for exactly this purpose —
-# genuinely reached out to over the network so a real Web Reputation /
-# firewall policy has real traffic to act on.
+# Trend Micro's own Web Reputation Service test domains — each pre-published
+# at a specific, deterministic risk category. Rotated through in order (not
+# randomly) so repeated clicks demonstrate the full range. A real outbound
+# connection is made to each; nothing is written to disk.
 WEB_REPUTATION_TARGETS = [
-    {"domain": "malware.wicar.org", "category": "Malware", "score": 10},
-    {"domain": "vxvault.net", "category": "Malicious Source / 0-day Distribution", "score": 10},
+    {"domain": "wrs49.winshipway.com", "category": "Dangerous", "severity": "Critical"},
+    {"domain": "wrs65.winshipway.com", "category": "Highly Suspicious", "severity": "High"},
+    {"domain": "wrs70.winshipway.com", "category": "Suspicious", "severity": "Medium"},
+    {"domain": "wrs71.winshipway.com", "category": "Unrated", "severity": "Low"},
+    {"domain": "wrs81.winshipway.com", "category": "Normal", "severity": "Low"},
 ]
 
 # --- In-memory demo state (reset on container restart — a feature: every
@@ -129,6 +161,7 @@ STATE: dict[str, Any] = {
     "modules": {mid: {"status": "protected", "last_event": None} for mid in MODULES},
     "events": [],
     "ips_rule_index": 0,
+    "wrs_target_index": 0,
     "log_lines": [],
 }
 
@@ -166,6 +199,7 @@ def reset_state() -> None:
     STATE["modules"] = {mid: {"status": "protected", "last_event": None} for mid in MODULES}
     STATE["events"] = []
     STATE["ips_rule_index"] = 0
+    STATE["wrs_target_index"] = 0
     STATE["log_lines"] = []
     reset_decoy_file()
     try:
@@ -213,46 +247,78 @@ def trigger_anti_malware() -> dict:
 
 
 def trigger_web_reputation() -> dict:
-    """Makes a REAL outbound HTTP connection to a known-malicious-category
-    test domain. If Web Reputation / firewall protection is active on this
-    host, the connection will be blocked or fail — check the Vision One
-    console for the real event."""
-    target = random.choice(WEB_REPUTATION_TARGETS)
-    url = f"http://{target['domain']}/"
-    try:
-        urllib.request.urlopen(url, timeout=5)
-        outcome = "Connection succeeded (no outbound block observed from here)."
-    except (urllib.error.URLError, socket.timeout, OSError) as e:
-        outcome = f"Connection blocked/failed ({e}) — consistent with a Web Reputation block."
+    """Makes a REAL outbound connection to one of Trend Micro's own Web
+    Reputation Service test domains, each pre-published at a specific,
+    deterministic risk category (rotated through in order, not randomly, so
+    repeated clicks walk the full Dangerous → Normal spectrum). If Web
+    Reputation / firewall protection is active on this host, the connection
+    to anything but the Normal-rated domain should be blocked or fail —
+    check the Vision One console for the real event."""
+    target = WEB_REPUTATION_TARGETS[STATE["wrs_target_index"] % len(WEB_REPUTATION_TARGETS)]
+    STATE["wrs_target_index"] += 1
+
+    outcome = None
+    for scheme in ("https", "http"):
+        try:
+            urllib.request.urlopen(f"{scheme}://{target['domain']}/", timeout=5)
+            outcome = "Connection succeeded (no outbound block observed from here)."
+            break
+        except (urllib.error.URLError, socket.timeout, OSError) as e:
+            outcome = f"Connection blocked/failed ({e}) — consistent with a Web Reputation block."
     return add_event(
         "web-reputation",
-        severity="High",
-        rule="Web Reputation Service",
+        severity=target["severity"],
+        rule=f"Web Reputation Service — {target['category']}",
         description=(
             f"Simulated outbound connection to {target['domain']} "
-            f"(Category: {target['category']}). {outcome} Check the Vision One "
-            "console for the real Web Reputation event on this workload."
+            f"(Trend Micro WRS category: {target['category']}). {outcome} Check the "
+            "Vision One console for the real Web Reputation event on this workload."
         ),
         action="Attempted — verify in Vision One",
     )
 
 
+def _send_ips_probe_to_portal(body: bytes | None, query: str | None) -> str:
+    """Sends real bytes over the network to the portal container (harmless —
+    it just 404s) so an inline IPS gets genuine traffic to inspect. Returns a
+    human-readable outcome string; never raises."""
+    url = "http://portal:3000/probe"
+    if query:
+        url += "?probe=" + urllib.parse.quote(query)
+    try:
+        req = urllib.request.Request(url, data=body, method="POST" if body else "GET")
+        urllib.request.urlopen(req, timeout=5)
+        return "Request reached the target (no inline block observed from here)."
+    except (urllib.error.URLError, socket.timeout, OSError) as e:
+        return f"Request blocked/reset ({e}) — consistent with an inline IPS block."
+
+
 def trigger_host_ips() -> dict:
-    """Cycles through real TippingPoint SQLi rule IDs and actually sends
-    each payload over the network to another container in this compose
-    stack (the portal — harmless, it just 404s). If an inline Intrusion
+    """Cycles through 7 real TippingPoint rule IDs from the demo playbook:
+    3 SQL-injection rules (payload sent as a query string) and 4 browser-RCE
+    PoC rules (their real HTML content fetched from GitHub straight into
+    memory, then immediately forwarded as the request body) — all sent over
+    the network to the portal container in this compose stack. Nothing is
+    ever written to disk: the file-based payloads exist only in memory,
+    in-flight, for the moment it takes to relay them. If an inline Intrusion
     Prevention policy is protecting this host's network path, the request
     will be blocked or reset — check the Vision One console for the real
     event."""
     rule = IPS_RULES[STATE["ips_rule_index"] % len(IPS_RULES)]
     STATE["ips_rule_index"] += 1
 
-    url = "http://portal:3000/?probe=" + urllib.parse.quote(rule["payload"])
-    try:
-        urllib.request.urlopen(url, timeout=5)
-        outcome = "Request reached the target (no inline block observed from here)."
-    except (urllib.error.URLError, socket.timeout, OSError) as e:
-        outcome = f"Request blocked/reset ({e}) — consistent with an inline IPS block."
+    if "remote_file" in rule:
+        try:
+            with urllib.request.urlopen(GITHUB_TIPPINGPOINT_BASE + rule["remote_file"], timeout=10) as resp:
+                payload_bytes = resp.read()
+            outcome = _send_ips_probe_to_portal(body=payload_bytes, query=None)
+            transport = "sent as a simulated file upload"
+        except (urllib.error.URLError, socket.timeout, OSError) as e:
+            outcome = f"Could not fetch the test payload to relay ({e})."
+            transport = "fetch failed before it could be sent"
+    else:
+        outcome = _send_ips_probe_to_portal(body=None, query=rule["payload"])
+        transport = "sent as a query string"
 
     return add_event(
         "host-ips",
@@ -260,8 +326,8 @@ def trigger_host_ips() -> dict:
         rule=f"Rule {rule['id']} — {rule['name']}",
         description=(
             f"Simulated exploit request matching TippingPoint rule {rule['id']} "
-            f"({rule['name']}) sent over the workload network. {outcome} Check the "
-            "Vision One console for the real Intrusion Prevention event."
+            f"({rule['name']}), {transport} over the workload network. {outcome} "
+            "Check the Vision One console for the real Intrusion Prevention event."
         ),
         action="Sent — verify in Vision One",
     )

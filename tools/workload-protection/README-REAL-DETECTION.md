@@ -17,15 +17,21 @@ event record.
   (bind-mounted from the host at `/opt/workload-demo`). Real-time Anti-Malware
   scanning is typically on by default against the whole filesystem, so this
   should register immediately.
-- **Web Reputation** — makes a real outbound HTTP connection to
-  `malware.wicar.org` or `vxvault.net` (both public test/tracking domains
-  used for exactly this purpose). Web Reputation / firewall policies are
-  typically active by default, so this should register immediately.
-- **Intrusion Prevention (Host IPS)** — sends a real HTTP request containing
-  a known SQL-injection signature (TippingPoint rule 5670, 19769, or 3593)
-  to the portal container over this compose network. Requires the agent's
-  network/IPS driver to actually be inline on the interface this traffic
-  crosses (the Docker bridge network) — check the console if nothing shows.
+- **Web Reputation** — makes a real outbound connection to Trend Micro's own
+  Web Reputation Service test domains, rotated through in order:
+  `wrs49` (Dangerous) → `wrs65` (Highly Suspicious) → `wrs70` (Suspicious) →
+  `wrs71` (Unrated) → `wrs81` (Normal), all under `.winshipway.com`. Web
+  Reputation / firewall policies are typically active by default, so
+  anything but the Normal-rated domain should register immediately.
+- **Intrusion Prevention (Host IPS)** — sends a real HTTP request to the
+  portal container over this compose network, cycling through 7 real
+  TippingPoint rule IDs: 3 SQL-injection rules (5670, 19769, 3593, sent as a
+  query string) and 4 browser-RCE PoCs (3990, 3775, 9893, 23799 — MS03-020 /
+  MS14-064 / MS09-072 / MS05-054, fetched from GitHub straight into memory
+  and relayed as the request body — never written to disk). Requires the
+  agent's network/IPS driver to actually be inline on the interface this
+  traffic crosses (the Docker bridge network) — check the console if
+  nothing shows.
 
 ## Requires one-time policy configuration
 

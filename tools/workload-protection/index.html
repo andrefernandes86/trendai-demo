@@ -274,14 +274,14 @@
         id: 'web-reputation',
         icon: 'globe',
         name: 'Web Reputation',
-        desc: 'Makes a real outbound connection to a known-malicious-category test domain. Check Vision One for the real block event.',
+        desc: 'Makes a real outbound connection to one of Trend Micro\'s own Web Reputation test domains, rotating through Dangerous → Normal. Check Vision One for the real block event.',
         button: 'Check malware source reputation',
       },
       {
         id: 'host-ips',
         icon: 'bolt',
         name: 'Intrusion Prevention (Host IPS)',
-        desc: 'Sends a real network request carrying a known TippingPoint SQL-injection signature. Check Vision One for the real IPS event.',
+        desc: 'Sends a real network request carrying a known TippingPoint signature — rotates through 3 SQL-injection rules and 4 browser exploit PoCs. Check Vision One for the real IPS event.',
         button: 'Simulate exploit payload',
       },
       {

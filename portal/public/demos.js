@@ -58,8 +58,8 @@ window.TRENDAI_DEMOS = [
     steps: [
       'Click Open to view the protected workload dashboard (all 5 modules start "Protected").',
       'Trigger Anti-Malware — writes a real EICAR test file to the workload; a real agent quarantines it (check Vision One).',
-      'Trigger Web Reputation — makes a real outbound connection to a known-malicious-category test domain (check Vision One).',
-      'Trigger Host IPS — sends a real SQL-injection signature over the network, cycling through actual TippingPoint rule IDs (check Vision One).',
+      'Trigger Web Reputation — makes a real outbound connection to Trend Micro\'s own WRS test domains, rotating Dangerous → Normal (check Vision One).',
+      'Trigger Host IPS — sends a real network request over the wire, cycling through 3 SQL-injection rules and 4 browser exploit PoCs, all real TippingPoint rule IDs (check Vision One).',
       'Trigger Integrity Monitoring and Log Inspection — real file tampering and real log lines on this workload; these two need a one-time policy rule added in Vision One first (see README-REAL-DETECTION.md).',
       'Talking point: defense in depth — one exploited vulnerability, five independent modules each catching a different stage of the attack, visible in the real product console.',
     ],
