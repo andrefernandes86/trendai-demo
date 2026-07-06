@@ -95,10 +95,17 @@ services:
     restart: unless-stopped
 
   # --- Server & Workload Protection (FastAPI) — internal only -------------
+  # /opt/workload-demo is bind-mounted (not a named volume) so it's a
+  # predictable host path you can add directly to a real Deep Security /
+  # Vision One agent's Integrity Monitoring and Log Inspection rules, to
+  # make those two modules register real events too — see
+  # tools/workload-protection/README-REAL-DETECTION.md.
   workload-protection:
     build:
       context: ./tools/workload-protection
     container_name: trendai-workload-protection
+    volumes:
+      - /opt/workload-demo:/data
     restart: unless-stopped
 
   # --- Smish Detector (Flask, HTTPS/self-signed) — internal only ----------
