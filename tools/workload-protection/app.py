@@ -3,11 +3,11 @@ TrendAI Vision One — Server & Workload Protection (demo)
 
 Simulates an agent-based workload protection console. Every "Trigger" button
 in the UI only ever sends a bare POST with no payload; every detection runs
-here, server-side, against local artifacts (an in-memory EICAR signature,
-bundled TippingPoint IPS test pages, a local decoy file, and synthetic log
-lines generated in-process). Responses only ever contain sanitized event
-records — never raw file bytes, URLs, or attack-payload strings — so nothing
-malicious ever reaches the browser.
+here, server-side, against artifacts held entirely in memory or in a local
+decoy file (never a real test-malware/exploit sample on disk — see the
+comment on eicar_signature() below for why). Responses only ever contain
+sanitized event records — never raw file bytes, URLs, or attack-payload
+strings — so nothing malicious ever reaches the browser.
 """
 
 import hashlib
@@ -21,7 +21,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 
 APP_DIR = Path(__file__).parent
-SAMPLES_DIR = APP_DIR / "samples"
 DECOY_FILE = APP_DIR / "decoy_passwd"
 
 # The EICAR test string, XOR-encoded (key 0x5A) so no recognisable AV
@@ -70,7 +69,13 @@ MODULES = {
 
 # Real TippingPoint / Deep Security-style rule IDs and payload fragments,
 # sourced from the same demo playbook (tools-malware-samples/tippingpoint).
-# Payload strings are matched locally and never sent to the client.
+# Payload strings are matched locally, entirely in memory, and never sent to
+# the client. (The playbook's 4 file-based browser-RCE PoCs — MS03-020,
+# MS14-064, MS09-072, MS05-054 — are deliberately not used here: like EICAR,
+# they are known exploit-signature test artifacts that a real real-time
+# Anti-Malware/IPS agent on the host will detect and quarantine the moment
+# they touch disk, build time or not. Sticking to in-memory string matches
+# keeps every module 100% disk-independent.)
 IPS_RULES = [
     {
         "id": "5670",
@@ -89,26 +94,6 @@ IPS_RULES = [
         "name": "SQL Injection Attack (Information Disclosure)",
         "payload": "' union all select load_file('/etc/passwd'),null #",
         "pattern": r"load_file\(",
-    },
-    {
-        "id": "3990",
-        "name": "HTTP: Microsoft Internet Explorer ObjectType Memory Corruption (MS03-020)",
-        "sample": "ms03_020_ie_objecttype.html",
-    },
-    {
-        "id": "3775",
-        "name": "HTTP: Shell.Application ActiveX Control Execution (MS14-064)",
-        "sample": "ms14_064_ole_xp.html",
-    },
-    {
-        "id": "9893",
-        "name": "HTTP: Microsoft Internet Explorer Remote Code Execution (MS09-072)",
-        "sample": "ms09_072_style_object.html",
-    },
-    {
-        "id": "23799",
-        "name": "HTTP: Obfuscated HTML Usage (MS05-054)",
-        "sample": "ms05_054_onload.html",
     },
 ]
 
@@ -213,25 +198,16 @@ def trigger_web_reputation() -> dict:
 
 
 def trigger_host_ips() -> dict:
-    """Cycles through real TippingPoint rule IDs from the demo playbook.
-    SQLi rules are confirmed via a genuine local regex match against the
-    canned payload (never sent to the client); HTML-based rules are
-    confirmed by verifying the bundled sample file is present and intact."""
+    """Cycles through real TippingPoint SQLi rule IDs from the demo playbook.
+    Each is confirmed via a genuine local regex match against its canned
+    payload string — entirely in memory, never written to disk, never sent
+    to the client."""
     rule = IPS_RULES[STATE["ips_rule_index"] % len(IPS_RULES)]
     STATE["ips_rule_index"] += 1
 
-    if "pattern" in rule:
-        if not re.search(rule["pattern"], rule["payload"], re.IGNORECASE):
-            raise HTTPException(500, "IPS signature self-check failed.")
-        desc = f"Inbound request matched known exploit signature — {rule['name']}."
-    else:
-        sample = SAMPLES_DIR / rule["sample"]
-        if not sample.exists() or sample.stat().st_size == 0:
-            raise HTTPException(500, "IPS test sample missing or invalid.")
-        desc = (
-            f"HTTP file transfer matched known exploit signature — {rule['name']} "
-            f"(payload delivered via simulated file upload)."
-        )
+    if not re.search(rule["pattern"], rule["payload"], re.IGNORECASE):
+        raise HTTPException(500, "IPS signature self-check failed.")
+    desc = f"Inbound request matched known exploit signature — {rule['name']}."
 
     return add_event(
         "host-ips",

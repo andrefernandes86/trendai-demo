@@ -4,11 +4,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Fetch known-safe TippingPoint/AV test artifacts at BUILD time only — the
-# running container never makes an outbound request for these at demo time.
-COPY fetch_samples.py .
-RUN python fetch_samples.py
-
+# No test-malware/exploit sample files are fetched or bundled — every
+# detection module operates on artifacts held in memory or generated at
+# runtime (see app.py). This keeps the image build itself independent of any
+# real-time anti-malware/IPS agent that might be watching the host
+# filesystem during `docker build`.
 COPY app.py index.html ./
 
 EXPOSE 8000
