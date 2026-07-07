@@ -30,11 +30,12 @@ const MIN_PASSWORD_LENGTH = 8;
 // network. `secure:false` skips TLS verification for the self-signed Smish app.
 // ---------------------------------------------------------------------------
 const DEMOS = {
-  v1fs:     { target: 'http://v1fs-scanner:8080',        secure: true },
-  appsec:   { target: 'http://app-sec:8000',             secure: true },
-  smish:    { target: 'https://smish:5000',              secure: false },
-  siemcalc: { target: 'http://siem-calc:80',             secure: true },
-  workload: { target: 'http://workload-protection:8000', secure: true },
+  v1fs:      { target: 'http://v1fs-scanner:8080',        secure: true },
+  appsec:    { target: 'http://app-sec:8000',             secure: true },
+  smish:     { target: 'https://smish:5000',              secure: false },
+  siemcalc:  { target: 'http://siem-calc:80',             secure: true },
+  workload:  { target: 'http://workload-protection:8000', secure: true },
+  aiscanner: { target: 'http://ai-scanner:8000',          secure: true },
 };
 
 // ---------------------------------------------------------------------------

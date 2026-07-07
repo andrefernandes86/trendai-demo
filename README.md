@@ -138,6 +138,7 @@ path, only after logging in.
 | **TrendAI Vision One File Security** | `v1fs-scanner` | `/v1fs` | Use case: scan file servers / network shares for malware via the File Security SDK; PDF reports |
 | **TrendAI Vision One AI Guard & File Security** | `app-sec` + `ollama` | `/appsec` | Use case: an AI chatbot with file uploads — AI Guard screens prompts, File Security scans files |
 | **Server & Workload Protection** | `workload-protection` | `/workload` | Use case: agent-based workload defense — Anti-Malware, Web Reputation, Host IPS, Integrity Monitoring, Log Inspection each catch a stage of a simulated attack |
+| **AI Scanner** | `ai-scanner` + `ollama` | `/aiscanner` | Use case: red-team a local LLM — real adversarial prompts against a real Ollama model, findings mapped to the OWASP Top 10 for LLM Applications |
 | **Smish Detector** | `smish` | `/smish` | Smishing (SMS phishing) awareness demo (under **Other**) |
 | **Agentic SIEM Sizing Calculator** | `siem-calc` | `/siemcalc` | Credit-sizing wizard for Vision One Agentic SIEM (under **Business Tools**) |
 
@@ -145,7 +146,7 @@ Each demo's live "how to run it" script is shown directly on its card in the por
 
 ### How the reverse proxy works
 
-- `/v1fs`, `/appsec`, `/smish`, `/workload`, `/siemcalc` proxy to the demo containers with the prefix
+- `/v1fs`, `/appsec`, `/smish`, `/workload`, `/siemcalc`, `/aiscanner` proxy to the demo containers with the prefix
   stripped; the portal checks your login session first.
 - Each app keeps its own root-absolute asset/API paths (e.g. `/style.css`,
   `/api/scan`). The portal routes those back to the right backend using the
@@ -215,6 +216,7 @@ trendai-demo/
     ├── v1fs-manual-scan/      #   TrendAI Vision One File Security scanner (Go)
     ├── app-sec-file-sec/      #   AI Guard & File Security chatbot (FastAPI + Ollama)
     ├── workload-protection/   #   Server & Workload Protection demo (FastAPI)
+    ├── ai-scanner/            #   AI Scanner — LLM red-teaming demo (FastAPI + Ollama)
     ├── sms-dl/                #   Smish Detector (Flask)
     └── siem-calculator/       #   Agentic SIEM Sizing Calculator (nginx SPA)
 ```

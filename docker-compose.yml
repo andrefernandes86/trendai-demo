@@ -12,6 +12,7 @@
 #   http://<host>:8088/smish     Smish Detector             (auth required)
 #   http://<host>:8088/siemcalc  Agentic SIEM Calculator    (auth required)
 #   http://<host>:8088/workload  Server & Workload Protection (auth required)
+#   http://<host>:8088/aiscanner AI Scanner                   (auth required)
 #
 # The demo containers are NOT published on the host — they are only reachable
 # on the internal compose network via the authenticated portal.
@@ -38,6 +39,7 @@ services:
       - smish
       - siem-calc
       - workload-protection
+      - ai-scanner
     restart: unless-stopped
 
   # --- V1 File Security Scanner (Go) — internal only ----------------------
@@ -66,14 +68,20 @@ services:
     restart: unless-stopped
 
   # --- Ollama LLM (CPU) — internal only -----------------------------------
-  # Serves a small CPU-friendly model for the AI Guard chatbot demo. On first
-  # start it pulls the model into the ollama_data volume (one-time download).
+  # Shared by the AI Guard chatbot (OLLAMA_MODEL) and the AI Scanner tool,
+  # which needs several models spanning ~1B-4B parameters to choose from
+  # (OLLAMA_EXTRA_MODELS). Pulled once into the ollama_data volume. Keep-alive
+  # is kept modest (10m) since this host has limited free RAM (~3GB) shared
+  # across several containers plus a real endpoint agent — a short idle
+  # unload avoids multiple models piling up resident at once. AI Scanner
+  # additionally requests its own short keep_alive per call.
   ollama:
     image: ollama/ollama:latest
     container_name: trendai-ollama
     environment:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma2:2b}
-      OLLAMA_KEEP_ALIVE: "24h"
+      OLLAMA_EXTRA_MODELS: "${OLLAMA_EXTRA_MODELS:-llama3.2:1b phi3:mini}"
+      OLLAMA_KEEP_ALIVE: "10m"
     entrypoint:
       - /bin/sh
       - -c
@@ -82,6 +90,10 @@ services:
         until ollama list >/dev/null 2>&1; do sleep 1; done
         echo "Pulling $${OLLAMA_MODEL}…"
         ollama pull "$${OLLAMA_MODEL}" || true
+        for m in $${OLLAMA_EXTRA_MODELS}; do
+          echo "Pulling $$m…"
+          ollama pull "$$m" || true
+        done
         wait
     volumes:
       - ollama_data:/root/.ollama
@@ -106,6 +118,17 @@ services:
     container_name: trendai-workload-protection
     volumes:
       - /opt/workload-demo:/data
+    restart: unless-stopped
+
+  # --- AI Scanner (FastAPI) — internal only -------------------------------
+  # Original adversarial-testing engine against local Ollama models —
+  # see tools/ai-scanner/app.py for the full design rationale.
+  ai-scanner:
+    build:
+      context: ./tools/ai-scanner
+    container_name: trendai-ai-scanner
+    depends_on:
+      - ollama
     restart: unless-stopped
 
   # --- Smish Detector (Flask, HTTPS/self-signed) — internal only ----------
