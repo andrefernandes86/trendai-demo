@@ -30,6 +30,7 @@
     min-height: 100vh;
   }
   a { color: inherit; }
+  code { background: var(--bg-2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
 
   header.topbar {
     display: flex; align-items: center; justify-content: space-between;
@@ -47,10 +48,11 @@
     padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
   }
   .topbtn:hover { border-color: var(--red); }
+  .topbtn.active { border-color: var(--red); color: var(--red); }
 
-  .container { max-width: 1200px; margin: 0 auto; padding: 28px 32px 60px; }
-  .grid2 { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
-  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+  .container { max-width: 1280px; margin: 0 auto; padding: 28px 32px 60px; }
+  .grid2 { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 950px) { .grid2 { grid-template-columns: 1fr; } }
 
   .card {
     background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
@@ -60,23 +62,33 @@
   .card .sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
 
   label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 6px; font-weight: 600; }
-  select, input[type="text"], input[type="password"] {
+  select, input[type="text"], input[type="password"], input[type="number"], input[type="range"] {
     width: 100%; padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border);
     border-radius: 8px; color: var(--text); font-size: 13px; outline: none;
   }
   select:focus, input:focus { border-color: var(--red); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .range-row { display: flex; align-items: center; gap: 10px; }
+  .range-row input[type="range"] { flex: 1; }
+  .range-val { font-size: 12px; font-weight: 700; min-width: 40px; text-align: right; }
+
+  .mode-toggle { display: flex; gap: 0; background: var(--bg-2); border-radius: 8px; padding: 3px; margin-top: 8px; }
+  .mode-btn { flex: 1; padding: 8px 10px; border-radius: 6px; border: none; background: transparent; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
+  .mode-btn.active { background: var(--red); color: #fff; }
 
   .catlist { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
   .catitem {
-    display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
-    background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; font-size: 12px;
+    padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; font-size: 12px;
   }
-  .catitem input { margin-top: 2px; }
+  .catitem .cathead { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .catitem input[type=checkbox] { margin-top: 2px; }
   .catitem .owasp { font-size: 10px; font-weight: 700; color: var(--red); text-transform: uppercase; }
   .catitem .name { font-weight: 600; font-size: 13px; }
   .catitem .desc { color: var(--muted); font-size: 11.5px; margin-top: 2px; line-height: 1.4; }
   .catitem.excluded { opacity: 0.55; }
   .catitem.excluded .owasp { color: var(--muted); }
+  .testsublist { margin: 8px 0 0 26px; display: flex; flex-direction: column; gap: 6px; }
+  .testsublist label { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 400; color: var(--text); margin: 0; cursor: pointer; }
 
   .btn {
     width: 100%; padding: 12px 16px; background: var(--red); color: #fff; border: none;
@@ -86,16 +98,23 @@
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
   .btn.secondary:hover { border-color: var(--red); }
+  .btn.small { width: auto; padding: 8px 12px; font-size: 12px; margin-top: 0; }
 
   .settings-note {
     font-size: 11.5px; color: var(--warning); background: rgba(245, 158, 11, 0.08);
     border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 10px 12px; margin-top: 12px; line-height: 1.5;
   }
+  .save-msg { font-size: 12px; margin-top: 8px; min-height: 16px; }
+  .save-msg.ok { color: var(--success); }
+  .save-msg.err { color: var(--danger); }
+
+  .config-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .config-row select { flex: 1; }
 
   .progress-wrap { margin-bottom: 20px; }
   .progress-bar-track { height: 8px; background: var(--bg-2); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
   .progress-bar-fill { height: 100%; background: var(--red); transition: width 0.3s ease; }
-  .progress-label { font-size: 12px; color: var(--muted); }
+  .progress-label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
 
   .summary-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
   .sumtile { flex: 1; min-width: 100px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
@@ -154,15 +173,49 @@
       <div>
         <div class="card">
           <h2>Scan Configuration</h2>
-          <p class="sub">Pick a local model and the risk categories to test. Each test sends a real prompt to the real model and analyzes the real response — nothing is scripted.</p>
+          <p class="sub">Each test sends a real prompt to the real model and analyzes the real response — nothing is scripted.</p>
+
+          <label for="scanNameInput">Scan Name</label>
+          <input type="text" id="scanNameInput" placeholder="e.g. Demo run 1" />
 
           <label for="modelSelect">Model</label>
           <select id="modelSelect"></select>
 
-          <label>Risk Categories</label>
+          <label>Test Selection Mode</label>
+          <div class="mode-toggle">
+            <button type="button" class="mode-btn active" id="modeAutoBtn">Automated (Full)</button>
+            <button type="button" class="mode-btn" id="modeManualBtn">Manual</button>
+          </div>
+
+          <label>Risk Categories <span id="modeHint" style="font-weight:400;color:var(--muted)"></span></label>
           <div class="catlist" id="catList"></div>
 
-          <button class="btn" id="startBtn">Run Full Scan</button>
+          <label>Scan Parameters</label>
+          <div class="row2">
+            <div>
+              <div class="range-row">
+                <input type="range" id="tempRange" min="0" max="1.2" step="0.1" value="0.7" />
+                <span class="range-val" id="tempVal">0.7</span>
+              </div>
+              <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">Temperature</div>
+            </div>
+            <div>
+              <input type="number" id="maxTokensInput" min="32" max="500" step="16" value="250" />
+              <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">Max response length (tokens)</div>
+            </div>
+          </div>
+
+          <label>Saved Configurations</label>
+          <div class="config-row">
+            <select id="configSelect"><option value="">— none —</option></select>
+            <button class="btn small secondary" id="loadConfigBtn">Load</button>
+          </div>
+          <div class="config-row">
+            <input type="text" id="configNameInput" placeholder="Name to save as…" style="flex:1" />
+            <button class="btn small secondary" id="saveConfigBtn">Save</button>
+          </div>
+
+          <button class="btn" id="startBtn">Run Scan</button>
           <button class="btn secondary" id="cancelBtn" style="display:none;">Cancel Scan</button>
         </div>
 
@@ -182,6 +235,7 @@
             <option value="in-1">in-1</option>
           </select>
           <button class="btn" id="saveSettingsBtn">Save</button>
+          <div class="save-msg" id="settingsSaveMsg"></div>
           <div class="settings-note">
             ⚠ This demo's scan engine runs entirely locally against this host's Ollama instance.
             The key above is stored for UI/workflow parity with the real product only — nothing is
@@ -195,7 +249,10 @@
         <div id="progressSection" style="display:none;">
           <div class="progress-wrap">
             <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
-            <div class="progress-label" id="progressLabel"></div>
+            <div class="progress-label">
+              <span id="progressLabel"></span>
+              <span id="elapsedLabel"></span>
+            </div>
           </div>
         </div>
 
@@ -205,13 +262,13 @@
           <table class="steps" id="stepsTable" style="display:none;">
             <thead><tr>
               <th style="width:70px">OWASP</th>
-              <th style="width:160px">Category</th>
+              <th style="width:180px">Test</th>
               <th style="width:90px">Status</th>
               <th>Finding / Note</th>
             </tr></thead>
             <tbody id="stepsBody"></tbody>
           </table>
-          <div class="empty-state" id="emptyState">Configure a scan on the left and click "Run Full Scan" to begin.</div>
+          <div class="empty-state" id="emptyState">Configure a scan on the left and click "Run Scan" to begin. Small CPU models can take 20-60s per test — the elapsed timer confirms it's still working.</div>
         </div>
 
         <div class="cta" id="ctaSection" style="display:none;">
@@ -226,8 +283,11 @@
   <script>
     let CATEGORIES = [];
     let EXCLUDED = [];
+    let mode = 'automated'; // 'automated' | 'manual'
     let currentScanId = null;
     let pollTimer = null;
+    let scanStartTime = null;
+    let elapsedTimer = null;
 
     async function loadModels() {
       const sel = document.getElementById('modelSelect');
@@ -243,21 +303,24 @@
       }
     }
 
-    async function loadCategories() {
-      const res = await fetch('/api/categories');
-      const data = await res.json();
-      CATEGORIES = data.categories;
-      EXCLUDED = data.excluded;
+    function renderCategories() {
       const list = document.getElementById('catList');
+      document.getElementById('modeHint').textContent =
+        mode === 'automated' ? '(all tests in checked categories run)' : '(pick individual tests)';
       list.innerHTML = CATEGORIES.map(c => `
-        <label class="catitem">
-          <input type="checkbox" value="${c.id}" checked />
-          <div>
-            <div class="owasp">${c.owasp_id}</div>
-            <div class="name">${c.name}</div>
-            <div class="desc">${c.description} (${c.count} test${c.count > 1 ? 's' : ''})</div>
-          </div>
-        </label>
+        <div class="catitem" data-cat="${c.id}">
+          <label class="cathead">
+            <input type="checkbox" class="cat-checkbox" value="${c.id}" checked />
+            <div>
+              <div class="owasp">${c.owasp_id}</div>
+              <div class="name">${c.name}</div>
+              <div class="desc">${c.description} (${c.tests.length} test${c.tests.length > 1 ? 's' : ''})</div>
+            </div>
+          </label>
+          ${mode === 'manual' ? `<div class="testsublist">
+            ${c.tests.map(t => `<label><input type="checkbox" class="test-checkbox" data-cat="${c.id}" value="${t.test_id}" checked /> ${t.label}</label>`).join('')}
+          </div>` : ''}
+        </div>
       `).join('') + EXCLUDED.map(e => `
         <div class="catitem excluded">
           <div>
@@ -267,6 +330,43 @@
           </div>
         </div>
       `).join('');
+    }
+
+    async function loadCategories() {
+      const res = await fetch('/api/categories');
+      const data = await res.json();
+      CATEGORIES = data.categories;
+      EXCLUDED = data.excluded;
+      renderCategories();
+    }
+
+    document.getElementById('modeAutoBtn').addEventListener('click', () => {
+      mode = 'automated';
+      document.getElementById('modeAutoBtn').classList.add('active');
+      document.getElementById('modeManualBtn').classList.remove('active');
+      renderCategories();
+    });
+    document.getElementById('modeManualBtn').addEventListener('click', () => {
+      mode = 'manual';
+      document.getElementById('modeManualBtn').classList.add('active');
+      document.getElementById('modeAutoBtn').classList.remove('active');
+      renderCategories();
+    });
+
+    document.getElementById('tempRange').addEventListener('input', (e) => {
+      document.getElementById('tempVal').textContent = e.target.value;
+    });
+
+    function collectTestIds() {
+      if (mode === 'automated') {
+        const checkedCats = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(el => el.value);
+        const ids = [];
+        CATEGORIES.forEach(c => {
+          if (checkedCats.includes(c.id)) c.tests.forEach(t => ids.push(t.test_id));
+        });
+        return ids;
+      }
+      return Array.from(document.querySelectorAll('.test-checkbox:checked')).map(el => el.value);
     }
 
     async function loadSettings() {
@@ -279,20 +379,82 @@
 
     document.getElementById('settingsBtn').addEventListener('click', () => {
       const card = document.getElementById('settingsCard');
-      card.style.display = card.style.display === 'none' ? 'block' : 'none';
+      const willShow = card.style.display === 'none' || !card.style.display;
+      card.style.display = willShow ? 'block' : 'none';
+      document.getElementById('settingsBtn').classList.toggle('active', willShow);
+      if (willShow) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
 
     document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+      const msg = document.getElementById('settingsSaveMsg');
+      msg.textContent = 'Saving…';
+      msg.className = 'save-msg';
       const apiKey = document.getElementById('apiKeyInput').value;
       const region = document.getElementById('regionInput').value;
-      await fetch('/api/settings', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey, region }),
-      });
-      document.getElementById('apiKeyInput').value = '';
-      await loadSettings();
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey, region }),
+        });
+        if (!res.ok) throw new Error('save failed');
+        document.getElementById('apiKeyInput').value = '';
+        await loadSettings();
+        msg.textContent = '✓ Settings saved.';
+        msg.className = 'save-msg ok';
+      } catch (e) {
+        msg.textContent = '✗ Could not save settings — try again.';
+        msg.className = 'save-msg err';
+      }
+      setTimeout(() => { msg.textContent = ''; }, 4000);
     });
 
+    // --- Saved configurations ---
+    async function loadConfigList() {
+      const res = await fetch('/api/configs');
+      const data = await res.json();
+      const sel = document.getElementById('configSelect');
+      sel.innerHTML = '<option value="">— none —</option>' +
+        data.configs.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+      window._SAVED_CONFIGS = {};
+      data.configs.forEach(c => { window._SAVED_CONFIGS[c.name] = c; });
+    }
+
+    document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+      const name = document.getElementById('configNameInput').value.trim();
+      if (!name) return;
+      await fetch('/api/configs', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name, model: document.getElementById('modelSelect').value, mode,
+          testIds: collectTestIds(),
+          numPredict: Number(document.getElementById('maxTokensInput').value),
+          temperature: Number(document.getElementById('tempRange').value),
+        }),
+      });
+      document.getElementById('configNameInput').value = '';
+      await loadConfigList();
+    });
+
+    document.getElementById('loadConfigBtn').addEventListener('click', () => {
+      const name = document.getElementById('configSelect').value;
+      const cfg = window._SAVED_CONFIGS && window._SAVED_CONFIGS[name];
+      if (!cfg) return;
+      document.getElementById('modelSelect').value = cfg.model;
+      document.getElementById('maxTokensInput').value = cfg.numPredict;
+      document.getElementById('tempRange').value = cfg.temperature;
+      document.getElementById('tempVal').textContent = cfg.temperature;
+      mode = cfg.mode || 'automated';
+      document.getElementById('modeAutoBtn').classList.toggle('active', mode === 'automated');
+      document.getElementById('modeManualBtn').classList.toggle('active', mode === 'manual');
+      renderCategories();
+      if (mode === 'manual') {
+        document.querySelectorAll('.test-checkbox').forEach(el => {
+          el.checked = (cfg.testIds || []).includes(el.value);
+        });
+      }
+    });
+
+    // --- Scan execution + live progress ---
     function renderSteps(scan) {
       const body = document.getElementById('stepsBody');
       document.getElementById('stepsTable').style.display = 'table';
@@ -300,7 +462,7 @@
       body.innerHTML = scan.steps.map(s => `
         <tr>
           <td><b>${s.owasp_id}</b></td>
-          <td>${s.category_name}</td>
+          <td>${s.label || s.category_name}</td>
           <td><span class="status-pill ${s.status}">${s.status}</span></td>
           <td>
             ${s.note ? s.note : ''}
@@ -329,6 +491,7 @@
         document.getElementById('startBtn').disabled = false;
         document.getElementById('ctaSection').style.display = 'flex';
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
       }
     }
 
@@ -340,10 +503,18 @@
       renderSteps(scan);
     }
 
+    function tickElapsed() {
+      if (!scanStartTime) return;
+      const secs = Math.floor((Date.now() - scanStartTime) / 1000);
+      document.getElementById('elapsedLabel').textContent = `elapsed: ${secs}s`;
+    }
+
     document.getElementById('startBtn').addEventListener('click', async () => {
       const model = document.getElementById('modelSelect').value;
       if (!model) return;
-      const categories = Array.from(document.querySelectorAll('#catList input[type=checkbox]:checked')).map(el => el.value);
+      const testIds = collectTestIds();
+      if (!testIds.length) { alert('Select at least one test.'); return; }
+
       document.getElementById('startBtn').disabled = true;
       document.getElementById('cancelBtn').style.display = 'block';
       document.getElementById('progressSection').style.display = 'block';
@@ -351,17 +522,25 @@
 
       const res = await fetch('/api/scan', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, categories }),
+        body: JSON.stringify({
+          model, testIds,
+          scanName: document.getElementById('scanNameInput').value,
+          numPredict: Number(document.getElementById('maxTokensInput').value),
+          temperature: Number(document.getElementById('tempRange').value),
+        }),
       });
       if (!res.ok) {
         document.getElementById('startBtn').disabled = false;
-        alert('Could not start scan — check that Ollama has at least one model pulled.');
+        const err = await res.json().catch(() => ({}));
+        alert('Could not start scan: ' + (err.detail || 'check that Ollama has at least one model pulled.'));
         return;
       }
       const data = await res.json();
       currentScanId = data.scanId;
+      scanStartTime = Date.now();
       pollScan();
       pollTimer = setInterval(pollScan, 1200);
+      elapsedTimer = setInterval(tickElapsed, 1000);
     });
 
     document.getElementById('cancelBtn').addEventListener('click', async () => {
@@ -370,7 +549,7 @@
     });
 
     (async () => {
-      await Promise.all([loadModels(), loadCategories(), loadSettings()]);
+      await Promise.all([loadModels(), loadCategories(), loadSettings(), loadConfigList()]);
     })();
   </script>
 </body>
