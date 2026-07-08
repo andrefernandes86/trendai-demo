@@ -408,12 +408,24 @@ def _clean_log_for_display(log_path: str, max_chars: int = 8000) -> str:
             segs = [s for s in line.split("\r") if s.strip()]
             line = segs[-1] if segs else ""
         out.append(line.rstrip())
+    def norm(s: str) -> str:
+        # Digit-agnostic key so an in-place status line (e.g. "Elapsed time: 7s"
+        # vs "8s", "Successful attacks: 0/2" vs "1/2") is treated as the same
+        # line and only its latest value is kept — instead of stacking a tick
+        # per second.
+        return re.sub(r"\d+", "#", s).strip()
+
     cleaned = []
     for ln in out:
         if ln == "" and (not cleaned or cleaned[-1] == ""):
             continue            # collapse blank runs
         if cleaned and cleaned[-1] == ln:
-            continue            # drop consecutive duplicate frames
+            continue            # drop consecutive identical frames
+        # If this line is the same status as the previous kept line with only
+        # numbers changed, replace it in place rather than appending.
+        if cleaned and ln.strip() and norm(ln) == norm(cleaned[-1]) and any(c.isdigit() for c in ln):
+            cleaned[-1] = ln
+            continue
         cleaned.append(ln)
     return "\n".join(cleaned).strip()[-max_chars:]
 
