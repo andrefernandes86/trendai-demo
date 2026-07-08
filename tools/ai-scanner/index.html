@@ -20,6 +20,7 @@
     --radius: 12px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { color-scheme: dark; }
   body {
     font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
     background:
@@ -30,7 +31,7 @@
     min-height: 100vh;
   }
   a { color: inherit; }
-  code { background: var(--bg-2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+  code { background: var(--bg-2); padding: 1px 5px; border-radius: 4px; font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
 
   header.topbar {
     display: flex; align-items: center; justify-content: space-between;
@@ -50,55 +51,99 @@
   .topbtn:hover { border-color: var(--red); }
   .topbtn.active { border-color: var(--red); color: var(--red); }
 
-  .container { max-width: 1280px; margin: 0 auto; padding: 28px 32px 60px; }
-  .grid2 { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
-  @media (max-width: 950px) { .grid2 { grid-template-columns: 1fr; } }
+  .container { max-width: 1200px; margin: 0 auto; padding: 28px 32px 60px; }
 
-  .card {
-    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 20px; margin-bottom: 20px;
+  /* ---- CLI-style wizard shell ---- */
+  .clishell {
+    background: #0e0e1a; border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; margin-bottom: 20px;
   }
-  .card h2 { font-size: 15px; margin-bottom: 4px; }
-  .card .sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+  .clihead {
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+    background: var(--bg-2); border-bottom: 1px solid var(--border);
+    font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--muted);
+  }
+  .clihead .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .clihead .dot.r { background: #ff5f56; }
+  .clihead .dot.y { background: #ffbd2e; }
+  .clihead .dot.g { background: #27c93f; }
+  .clihead .path { margin-left: 8px; }
+  .clibody { padding: 22px 26px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; line-height: 1.7; }
+  .cliprompt { color: var(--success); }
+  .cliline { color: var(--text); margin-bottom: 4px; }
+  .clidim { color: var(--muted); }
+  .clistepno { color: var(--red); font-weight: 700; }
 
-  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 6px; font-weight: 600; }
+  .wizard-progress { display: flex; gap: 4px; padding: 0 26px 16px; }
+  .wizard-progress .seg { flex: 1; height: 4px; border-radius: 2px; background: var(--bg-2); }
+  .wizard-progress .seg.done { background: var(--success); }
+  .wizard-progress .seg.current { background: var(--red); }
+
+  .step-panel { padding: 4px 26px 26px; min-height: 220px; }
+  .step-error { color: var(--danger); font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.6; padding: 12px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; }
+  .step-panel h2 {
+    font-family: ui-monospace, Menlo, monospace; font-size: 14px; margin-bottom: 4px; color: var(--text);
+  }
+  .step-panel h2 .n { color: var(--red); }
+  .step-panel .sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+
+  .optlist { display: flex; flex-direction: column; gap: 8px; }
+  .optrow {
+    display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: var(--bg-2);
+    border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color .15s;
+  }
+  .optrow:hover { border-color: var(--red); }
+  .optrow.selected { border-color: var(--red); background: rgba(215,25,33,0.08); }
+  .optrow.disabled { opacity: 0.45; cursor: not-allowed; }
+  .optrow.disabled:hover { border-color: var(--border); }
+  .optrow input[type=radio], .optrow input[type=checkbox] { margin-top: 3px; accent-color: var(--red); }
+  .optrow .marker { font-family: ui-monospace, Menlo, monospace; color: var(--red); font-weight: 700; margin-top: 1px; }
+  .optrow .title { font-weight: 600; font-size: 13px; }
+  .optrow .desc { color: var(--muted); font-size: 11.5px; margin-top: 2px; line-height: 1.4; }
+  .optrow .owasp { font-size: 10px; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 0.4px; }
+
+  .techlist { margin: 10px 0 0 24px; display: flex; flex-direction: column; gap: 6px; padding-left: 12px; border-left: 2px solid var(--border); }
+  .techlist label { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-family: ui-monospace, Menlo, monospace; color: var(--text); cursor: pointer; }
+  .techlist input { accent-color: var(--red); }
+
+  label.field-label { display: block; font-size: 11px; color: var(--muted); margin: 14px 0 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+  label.field-label:first-child { margin-top: 0; }
   select, input[type="text"], input[type="password"], input[type="number"], input[type="range"] {
     width: 100%; padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border);
     border-radius: 8px; color: var(--text); font-size: 13px; outline: none;
+    font-family: ui-monospace, Menlo, monospace;
   }
   select:focus, input:focus { border-color: var(--red); }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .range-row { display: flex; align-items: center; gap: 10px; }
   .range-row input[type="range"] { flex: 1; }
-  .range-val { font-size: 12px; font-weight: 700; min-width: 40px; text-align: right; }
+  .range-val { font-size: 12px; font-weight: 700; min-width: 32px; text-align: right; }
+  .field-hint { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
 
-  .mode-toggle { display: flex; gap: 0; background: var(--bg-2); border-radius: 8px; padding: 3px; margin-top: 8px; }
-  .mode-btn { flex: 1; padding: 8px 10px; border-radius: 6px; border: none; background: transparent; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
-  .mode-btn.active { background: var(--red); color: #fff; }
-
-  .catlist { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-  .catitem {
-    padding: 10px 12px; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; font-size: 12px;
-  }
-  .catitem .cathead { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
-  .catitem input[type=checkbox] { margin-top: 2px; }
-  .catitem .owasp { font-size: 10px; font-weight: 700; color: var(--red); text-transform: uppercase; }
-  .catitem .name { font-weight: 600; font-size: 13px; }
-  .catitem .desc { color: var(--muted); font-size: 11.5px; margin-top: 2px; line-height: 1.4; }
-  .catitem.excluded { opacity: 0.55; }
-  .catitem.excluded .owasp { color: var(--muted); }
-  .testsublist { margin: 8px 0 0 26px; display: flex; flex-direction: column; gap: 6px; }
-  .testsublist label { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 400; color: var(--text); margin: 0; cursor: pointer; }
+  .wizard-nav { display: flex; justify-content: space-between; align-items: center; padding: 16px 26px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.15); }
+  .wizard-nav .spacer { flex: 1; }
 
   .btn {
-    width: 100%; padding: 12px 16px; background: var(--red); color: #fff; border: none;
-    border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 16px;
+    padding: 11px 20px; background: var(--red); color: #fff; border: none;
+    border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+    font-family: ui-monospace, Menlo, monospace;
   }
   .btn:hover { background: var(--red-dark); }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
-  .btn.secondary:hover { border-color: var(--red); }
-  .btn.small { width: auto; padding: 8px 12px; font-size: 12px; margin-top: 0; }
+  .btn.secondary:hover { border-color: var(--red); background: transparent; }
+  .btn.small { padding: 8px 12px; font-size: 11.5px; }
+
+  .summary-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .summary-table td { padding: 7px 0; font-size: 12.5px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; }
+  .summary-table td:first-child { color: var(--muted); width: 200px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; }
+  .summary-table td:last-child { font-family: ui-monospace, Menlo, monospace; }
+
+  .save-config-row { display: flex; gap: 8px; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border); }
+  .save-config-row input { flex: 1; }
+  .load-config-row { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+  .load-config-row select { flex: 1; }
+  .bulk-select-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
 
   .settings-note {
     font-size: 11.5px; color: var(--warning); background: rgba(245, 158, 11, 0.08);
@@ -108,8 +153,12 @@
   .save-msg.ok { color: var(--success); }
   .save-msg.err { color: var(--danger); }
 
-  .config-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
-  .config-row select { flex: 1; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 20px;
+  }
+  .card h2 { font-size: 15px; margin-bottom: 4px; }
+  .card .sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
 
   .progress-wrap { margin-bottom: 20px; }
   .progress-bar-track { height: 8px; background: var(--bg-2); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
@@ -148,7 +197,7 @@
     border: 1px solid rgba(215,25,33,0.3); border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   }
   .cta p { font-size: 13px; color: var(--muted); max-width: 560px; line-height: 1.5; }
-  .cta a.btn { width: auto; margin: 0; text-decoration: none; display: inline-block; }
+  .cta a.btn { text-decoration: none; display: inline-block; }
 </style>
 </head>
 <body>
@@ -164,341 +213,631 @@
         <div class="subtag">AI Scanner</div>
       </div>
     </div>
-    <button class="topbtn" id="settingsBtn">Settings</button>
+    <button class="topbtn" id="settingsBtn">Change API Key</button>
   </header>
 
   <div class="container">
-    <div class="grid2">
-      <!-- Left column: config -->
-      <div>
-        <div class="card">
-          <h2>Scan Configuration</h2>
-          <p class="sub">Each test sends a real prompt to the real model and analyzes the real response — nothing is scripted.</p>
 
-          <label for="scanNameInput">Scan Name</label>
-          <input type="text" id="scanNameInput" placeholder="e.g. Demo run 1" />
+    <!-- ===== CLI-style wizard (mirrors `tmas aiscan llm --interactive`) ===== -->
+    <div class="clishell" id="wizardShell">
+      <div class="clihead">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="path">tmas aiscan llm --interactive</span>
+      </div>
+      <div class="wizard-progress" id="wizardProgress"></div>
+      <div class="step-panel" id="stepPanel"></div>
+      <div class="wizard-nav">
+        <button class="btn secondary" id="backBtn">&larr; Back</button>
+        <span class="spacer"></span>
+        <button class="btn secondary" id="cancelWizardBtn" style="display:none;">Cancel Scan</button>
+        <button class="btn" id="nextBtn">Next &rarr;</button>
+      </div>
+    </div>
 
-          <label for="modelSelect">Model</label>
-          <select id="modelSelect"></select>
-
-          <label>Test Selection Mode</label>
-          <div class="mode-toggle">
-            <button type="button" class="mode-btn active" id="modeAutoBtn">Automated (Full)</button>
-            <button type="button" class="mode-btn" id="modeManualBtn">Manual</button>
-          </div>
-
-          <label>Risk Categories <span id="modeHint" style="font-weight:400;color:var(--muted)"></span></label>
-          <div class="catlist" id="catList"></div>
-
-          <label>Scan Parameters</label>
-          <div class="row2">
-            <div>
-              <div class="range-row">
-                <input type="range" id="tempRange" min="0" max="1.2" step="0.1" value="0.7" />
-                <span class="range-val" id="tempVal">0.7</span>
-              </div>
-              <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">Temperature</div>
-            </div>
-            <div>
-              <input type="number" id="maxTokensInput" min="32" max="500" step="16" value="250" />
-              <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">Max response length (tokens)</div>
-            </div>
-          </div>
-
-          <label>Saved Configurations</label>
-          <div class="config-row">
-            <select id="configSelect"><option value="">— none —</option></select>
-            <button class="btn small secondary" id="loadConfigBtn">Load</button>
-          </div>
-          <div class="config-row">
-            <input type="text" id="configNameInput" placeholder="Name to save as…" style="flex:1" />
-            <button class="btn small secondary" id="saveConfigBtn">Save</button>
-          </div>
-
-          <button class="btn" id="startBtn">Run Scan</button>
-          <button class="btn secondary" id="cancelBtn" style="display:none;">Cancel Scan</button>
-        </div>
-
-        <div class="card" id="settingsCard" style="display:none;">
-          <h2>Vision One Settings</h2>
-          <p class="sub">For workflow parity with the real <code>TMAS_API_KEY</code> flow.</p>
-          <label for="apiKeyInput">API Key</label>
-          <input type="password" id="apiKeyInput" placeholder="Enter your Vision One API key" autocomplete="off" />
-          <div id="apiKeyStatus" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
-          <label for="regionInput">Region</label>
-          <select id="regionInput">
-            <option value="us-1">us-1</option>
-            <option value="eu-1">eu-1</option>
-            <option value="jp-1">jp-1</option>
-            <option value="sg-1">sg-1</option>
-            <option value="au-1">au-1</option>
-            <option value="in-1">in-1</option>
-          </select>
-          <button class="btn" id="saveSettingsBtn">Save</button>
-          <div class="save-msg" id="settingsSaveMsg"></div>
-          <div class="settings-note">
-            ⚠ This demo's scan engine runs entirely locally against this host's Ollama instance.
-            The key above is stored for UI/workflow parity with the real product only — nothing is
-            transmitted to Vision One from this tool.
-          </div>
+    <!-- ===== Results ===== -->
+    <div id="progressSection" style="display:none;">
+      <div class="progress-wrap">
+        <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+        <div class="progress-label">
+          <span id="progressLabel"></span>
+          <span id="elapsedLabel"></span>
         </div>
       </div>
+    </div>
 
-      <!-- Right column: results -->
-      <div>
-        <div id="progressSection" style="display:none;">
-          <div class="progress-wrap">
-            <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
-            <div class="progress-label">
-              <span id="progressLabel"></span>
-              <span id="elapsedLabel"></span>
-            </div>
-          </div>
-        </div>
+    <div class="summary-row" id="summaryRow" style="display:none;"></div>
 
-        <div class="summary-row" id="summaryRow" style="display:none;"></div>
+    <div class="card" id="resultsCard" style="padding:0;overflow:hidden;display:none;">
+      <table class="steps" id="stepsTable" style="display:none;">
+        <thead><tr>
+          <th style="width:160px">Objective</th>
+          <th style="width:150px">Attack</th>
+          <th style="width:130px">Outcome</th>
+          <th>Vision One judge evaluation</th>
+        </tr></thead>
+        <tbody id="stepsBody"></tbody>
+      </table>
+    </div>
 
-        <div class="card" style="padding:0;overflow:hidden;">
-          <table class="steps" id="stepsTable" style="display:none;">
-            <thead><tr>
-              <th style="width:70px">OWASP</th>
-              <th style="width:180px">Test</th>
-              <th style="width:90px">Status</th>
-              <th>Finding / Note</th>
-            </tr></thead>
-            <tbody id="stepsBody"></tbody>
-          </table>
-          <div class="empty-state" id="emptyState">Configure a scan on the left and click "Run Scan" to begin. Small CPU models can take 20-60s per test — the elapsed timer confirms it's still working.</div>
-        </div>
-
-        <div class="cta" id="ctaSection" style="display:none;">
-          <p>This demo's findings come from an original local test engine. The real <code>tmas aiscan llm</code>
-            workflow runs a much deeper battery of attack techniques and reports full detail in the Vision One console.</p>
-          <a class="btn" href="https://docs.trendmicro.com/en-us/documentation/article/trend-vision-one-tmas-ai-scanner" target="_blank" rel="noopener">Learn about AI Scanner ↗</a>
-        </div>
-      </div>
+    <div class="cta" id="ctaSection" style="display:none;">
+      <p>These are real findings from the <code>tmas aiscan llm</code> engine — each attack was evaluated by the
+        Vision One hosted judge, which assigns severity and maps to MITRE ATLAS. The full scan, including complete
+        chat transcripts per finding, is available in the Vision One console under AI Scanner.</p>
+      <a class="btn" href="https://docs.trendmicro.com/en-us/documentation/article/trend-vision-one-tmas-ai-scanner" target="_blank" rel="noopener">Open AI Scanner in Vision One ↗</a>
     </div>
   </div>
 
   <script>
-    let CATEGORIES = [];
-    let EXCLUDED = [];
-    let mode = 'automated'; // 'automated' | 'manual'
+    // ---------------- State ----------------
+    let OBJECTIVES = [];
+    let TECHNIQUES = [];
+    let MODIFIERS = [];
+    let MODELS = [];
+    let SAVED_CONFIGS = {};
+    let SETTINGS = { hasApiKey: false, maskedKey: '', region: 'us-1' };
     let currentScanId = null;
     let pollTimer = null;
     let scanStartTime = null;
     let elapsedTimer = null;
 
+    const wizard = {
+      step: 0,
+      apiKeyInput: '',        // only holds a NEW key being typed; never pre-filled from the server
+      changingKey: false,     // true once the user clicks "Use a different key"
+      region: 'us-1',
+      scanName: '',
+      model: '',
+      temperature: 0.6,
+      selectedObjectives: new Set(),
+      selectedTechniques: new Set(['none']),
+      selectedModifiers: new Set(['none']),
+    };
+
+    const STEPS = ['apikey', 'target', 'configure', 'objectives', 'techniques', 'modifiers', 'review'];
+
+    // ---------------- Data loading ----------------
     async function loadModels() {
-      const sel = document.getElementById('modelSelect');
       try {
         const res = await fetch('/api/models');
         const data = await res.json();
-        sel.innerHTML = data.models.map(m =>
-          `<option value="${m.name}">${m.name} — ${m.parameter_size} (${m.quantization})</option>`
-        ).join('');
-        if (!data.models.length) sel.innerHTML = '<option value="">No models found on this Ollama instance</option>';
+        MODELS = data.models || [];
       } catch (e) {
-        sel.innerHTML = '<option value="">Could not reach Ollama</option>';
+        MODELS = [];
       }
+      if (MODELS.length && !wizard.model) wizard.model = MODELS[0].name;
     }
 
-    function renderCategories() {
-      const list = document.getElementById('catList');
-      document.getElementById('modeHint').textContent =
-        mode === 'automated' ? '(all tests in checked categories run)' : '(pick individual tests)';
-      list.innerHTML = CATEGORIES.map(c => `
-        <div class="catitem" data-cat="${c.id}">
-          <label class="cathead">
-            <input type="checkbox" class="cat-checkbox" value="${c.id}" checked />
-            <div>
-              <div class="owasp">${c.owasp_id}</div>
-              <div class="name">${c.name}</div>
-              <div class="desc">${c.description} (${c.tests.length} test${c.tests.length > 1 ? 's' : ''})</div>
-            </div>
-          </label>
-          ${mode === 'manual' ? `<div class="testsublist">
-            ${c.tests.map(t => `<label><input type="checkbox" class="test-checkbox" data-cat="${c.id}" value="${t.test_id}" checked /> ${t.label}</label>`).join('')}
-          </div>` : ''}
-        </div>
-      `).join('') + EXCLUDED.map(e => `
-        <div class="catitem excluded">
-          <div>
-            <div class="owasp">${e.owasp_id}</div>
-            <div class="name">${e.name} — not included</div>
-            <div class="desc">${e.reason}</div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    async function loadCategories() {
-      const res = await fetch('/api/categories');
+    async function loadTaxonomy() {
+      const res = await fetch('/api/taxonomy');
       const data = await res.json();
-      CATEGORIES = data.categories;
-      EXCLUDED = data.excluded;
-      renderCategories();
-    }
-
-    document.getElementById('modeAutoBtn').addEventListener('click', () => {
-      mode = 'automated';
-      document.getElementById('modeAutoBtn').classList.add('active');
-      document.getElementById('modeManualBtn').classList.remove('active');
-      renderCategories();
-    });
-    document.getElementById('modeManualBtn').addEventListener('click', () => {
-      mode = 'manual';
-      document.getElementById('modeManualBtn').classList.add('active');
-      document.getElementById('modeAutoBtn').classList.remove('active');
-      renderCategories();
-    });
-
-    document.getElementById('tempRange').addEventListener('input', (e) => {
-      document.getElementById('tempVal').textContent = e.target.value;
-    });
-
-    function collectTestIds() {
-      if (mode === 'automated') {
-        const checkedCats = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(el => el.value);
-        const ids = [];
-        CATEGORIES.forEach(c => {
-          if (checkedCats.includes(c.id)) c.tests.forEach(t => ids.push(t.test_id));
-        });
-        return ids;
-      }
-      return Array.from(document.querySelectorAll('.test-checkbox:checked')).map(el => el.value);
+      OBJECTIVES = data.objectives;
+      TECHNIQUES = data.techniques;
+      MODIFIERS = data.modifiers;
+      OBJECTIVES.forEach(o => wizard.selectedObjectives.add(o.id));
     }
 
     async function loadSettings() {
       const res = await fetch('/api/settings');
-      const data = await res.json();
-      document.getElementById('apiKeyStatus').textContent = data.hasApiKey
-        ? `Key saved: ${data.maskedKey}` : 'No API key saved yet.';
-      document.getElementById('regionInput').value = data.region;
+      SETTINGS = await res.json();
+      wizard.region = SETTINGS.region;
     }
 
-    document.getElementById('settingsBtn').addEventListener('click', () => {
-      const card = document.getElementById('settingsCard');
-      const willShow = card.style.display === 'none' || !card.style.display;
-      card.style.display = willShow ? 'block' : 'none';
-      document.getElementById('settingsBtn').classList.toggle('active', willShow);
-      if (willShow) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-
-    document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
-      const msg = document.getElementById('settingsSaveMsg');
-      msg.textContent = 'Saving…';
-      msg.className = 'save-msg';
-      const apiKey = document.getElementById('apiKeyInput').value;
-      const region = document.getElementById('regionInput').value;
-      try {
-        const res = await fetch('/api/settings', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey, region }),
-        });
-        if (!res.ok) throw new Error('save failed');
-        document.getElementById('apiKeyInput').value = '';
-        await loadSettings();
-        msg.textContent = '✓ Settings saved.';
-        msg.className = 'save-msg ok';
-      } catch (e) {
-        msg.textContent = '✗ Could not save settings — try again.';
-        msg.className = 'save-msg err';
-      }
-      setTimeout(() => { msg.textContent = ''; }, 4000);
-    });
-
-    // --- Saved configurations ---
     async function loadConfigList() {
       const res = await fetch('/api/configs');
       const data = await res.json();
-      const sel = document.getElementById('configSelect');
-      sel.innerHTML = '<option value="">— none —</option>' +
-        data.configs.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-      window._SAVED_CONFIGS = {};
-      data.configs.forEach(c => { window._SAVED_CONFIGS[c.name] = c; });
+      SAVED_CONFIGS = {};
+      data.configs.forEach(c => { SAVED_CONFIGS[c.name] = c; });
     }
 
-    document.getElementById('saveConfigBtn').addEventListener('click', async () => {
-      const name = document.getElementById('configNameInput').value.trim();
-      if (!name) return;
-      await fetch('/api/configs', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name, model: document.getElementById('modelSelect').value, mode,
-          testIds: collectTestIds(),
-          numPredict: Number(document.getElementById('maxTokensInput').value),
-          temperature: Number(document.getElementById('tempRange').value),
-        }),
-      });
-      document.getElementById('configNameInput').value = '';
-      await loadConfigList();
-    });
+    // ---------------- Wizard chrome ----------------
+    function renderProgress() {
+      const wrap = document.getElementById('wizardProgress');
+      wrap.innerHTML = STEPS.map((s, i) => {
+        const cls = i < wizard.step ? 'done' : (i === wizard.step ? 'current' : '');
+        return `<div class="seg ${cls}"></div>`;
+      }).join('');
+    }
 
-    document.getElementById('loadConfigBtn').addEventListener('click', () => {
-      const name = document.getElementById('configSelect').value;
-      const cfg = window._SAVED_CONFIGS && window._SAVED_CONFIGS[name];
-      if (!cfg) return;
-      document.getElementById('modelSelect').value = cfg.model;
-      document.getElementById('maxTokensInput').value = cfg.numPredict;
-      document.getElementById('tempRange').value = cfg.temperature;
-      document.getElementById('tempVal').textContent = cfg.temperature;
-      mode = cfg.mode || 'automated';
-      document.getElementById('modeAutoBtn').classList.toggle('active', mode === 'automated');
-      document.getElementById('modeManualBtn').classList.toggle('active', mode === 'manual');
-      renderCategories();
-      if (mode === 'manual') {
-        document.querySelectorAll('.test-checkbox').forEach(el => {
-          el.checked = (cfg.testIds || []).includes(el.value);
-        });
+    function stepHeader(n, title) {
+      return `<h2><span class="n">[${n}/${STEPS.length}]</span> ${title}</h2>`;
+    }
+
+    function renderStep() {
+      try {
+        renderStepInner();
+      } catch (e) {
+        console.error('renderStep failed', e);
+        const panel = document.getElementById('stepPanel');
+        panel.innerHTML = `<div class="step-error">Something went wrong rendering this step.<br>${(e && e.message) || e}<br><br>Try clicking Back, or reload the page.</div>`;
       }
+    }
+
+    function renderStepInner() {
+      renderProgress();
+      const panel = document.getElementById('stepPanel');
+      const name = STEPS[wizard.step];
+      document.getElementById('backBtn').style.display = wizard.step === 0 ? 'none' : 'inline-block';
+      document.getElementById('nextBtn').style.display = 'inline-block';
+      document.getElementById('cancelWizardBtn').style.display = 'none';
+      document.getElementById('nextBtn').textContent = name === 'review' ? 'Confirm & Run Scan' : 'Next →';
+
+      if (name === 'apikey') {
+        const showSavedKey = SETTINGS.hasApiKey && !wizard.changingKey;
+        panel.innerHTML = stepHeader(1, 'Vision One API Key') + `
+          <p class="sub">$ The real CLI requires <code>TMAS_API_KEY</code> before it does anything at all — this demo asks for it first too.</p>
+          ${showSavedKey ? `
+            <div class="optrow selected" style="cursor:default;">
+              <div>
+                <div class="title">Using saved key: ${SETTINGS.maskedKey}</div>
+                <div class="desc">Stored in-memory on this server only, never written to disk, never returned in plaintext by any endpoint.</div>
+              </div>
+            </div>
+            <button type="button" class="btn small secondary" id="changeKeyBtn" style="margin-top:10px;">Use a different key</button>
+          ` : `
+            <label class="field-label" for="apiKeyInput">API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="Enter your Vision One API key" autocomplete="off" value="${wizard.apiKeyInput}" />
+            <label class="field-label" for="regionSelect">Region</label>
+            <select id="regionSelect">
+              ${['us-1','eu-1','jp-1','sg-1','au-1','in-1'].map(r => `<option value="${r}" ${wizard.region===r?'selected':''}>${r}</option>`).join('')}
+            </select>
+            ${SETTINGS.hasApiKey ? '<button type="button" class="btn small secondary" id="cancelChangeKeyBtn" style="margin-top:10px;">Cancel — keep saved key</button>' : ''}
+          `}
+          <div class="settings-note">
+            ⚠ This demo's scan engine runs entirely locally against this host's Ollama instance.
+            The key is stored for UI/workflow parity with the real product only — nothing here is
+            transmitted to Vision One.
+          </div>
+        `;
+        setTimeout(() => {
+          const changeBtn = document.getElementById('changeKeyBtn');
+          if (changeBtn) changeBtn.addEventListener('click', () => { wizard.changingKey = true; renderStep(); });
+          const cancelBtn = document.getElementById('cancelChangeKeyBtn');
+          if (cancelBtn) cancelBtn.addEventListener('click', () => { wizard.changingKey = false; wizard.apiKeyInput = ''; renderStep(); });
+          const keyInput = document.getElementById('apiKeyInput');
+          if (keyInput) keyInput.addEventListener('input', e => { wizard.apiKeyInput = e.target.value; });
+          const regionSelect = document.getElementById('regionSelect');
+          if (regionSelect) regionSelect.addEventListener('change', e => { wizard.region = e.target.value; });
+        }, 0);
+      }
+
+      if (name === 'target') {
+        panel.innerHTML = stepHeader(2, 'Select the AI Target to scan') + `
+          <p class="sub">$ Choose which kind of AI target this scan group will test.</p>
+          <div class="optlist">
+            <label class="optrow selected">
+              <span class="marker">&#9679;</span>
+              <div><div class="title">Local Ollama Model</div>
+                <div class="desc">A model already pulled into this host's bundled Ollama instance. Fully functional in this demo.</div>
+              </div>
+            </label>
+            <label class="optrow disabled">
+              <span class="marker">&#9675;</span>
+              <div><div class="title">Model Endpoint (OpenAI-compliant)</div>
+                <div class="desc">Endpoint URL + API key + model ID for any endpoint implementing the OpenAI Chat Completions API. Not wired up in this demo — UI only.</div>
+              </div>
+            </label>
+            <label class="optrow disabled">
+              <span class="marker">&#9675;</span>
+              <div><div class="title">AI Application Endpoint (Custom)</div>
+                <div class="desc">An arbitrary HTTP endpoint with configurable request/response schemas. Not wired up in this demo — UI only.</div>
+              </div>
+            </label>
+            <label class="optrow disabled">
+              <span class="marker">&#9675;</span>
+              <div><div class="title">AWS Bedrock Foundation Model</div>
+                <div class="desc">Authenticates via the AWS credential chain — no endpoint or API key needed. Not wired up in this demo — UI only.</div>
+              </div>
+            </label>
+            <label class="optrow disabled">
+              <span class="marker">&#9675;</span>
+              <div><div class="title">Azure OpenAI / AI Foundry Endpoint</div>
+                <div class="desc">Azure resource base URL + deployment name, api_key or Entra ID auth. Not wired up in this demo — UI only.</div>
+              </div>
+            </label>
+            <label class="optrow disabled">
+              <span class="marker">&#9675;</span>
+              <div><div class="title">Google Vertex AI (Gemini)</div>
+                <div class="desc">Authenticates via Google Application Default Credentials. Not wired up in this demo — UI only.</div>
+              </div>
+            </label>
+          </div>
+        `;
+      }
+
+      if (name === 'configure') {
+        const modelOpts = MODELS.length
+          ? MODELS.map(m => `<option value="${m.name}" ${m.name === wizard.model ? 'selected' : ''}>${m.name} — ${m.parameter_size} (${m.quantization})</option>`).join('')
+          : '<option value="">No models found on this Ollama instance</option>';
+        panel.innerHTML = stepHeader(3, 'Configure the target model') + `
+          <p class="sub">$ Name this scan group and pick the target model (credentials are implicit — this Ollama instance is local, unauthenticated).</p>
+          <label class="field-label" for="scanNameInput">Scan Group Name</label>
+          <input type="text" id="scanNameInput" placeholder="e.g. demo-run-1" value="${wizard.scanName}" />
+          <label class="field-label" for="modelSelect">Target Model</label>
+          <div style="display:flex;gap:8px;">
+            <select id="modelSelect" style="flex:1;">${modelOpts}</select>
+            <button type="button" class="btn small secondary" id="refreshModelsBtn">↻ Refresh</button>
+          </div>
+          ${!MODELS.length ? '<div class="field-hint">Ollama may still be pulling its models on a fresh deploy — this can take a minute or two. Click Refresh to check again.</div>' : ''}
+          <label class="field-label">Temperature</label>
+          <div class="range-row">
+            <input type="range" id="tempRange" min="0" max="1.2" step="0.1" value="${wizard.temperature}" />
+            <span class="range-val" id="tempVal">${wizard.temperature}</span>
+          </div>
+          <div class="load-config-row" style="margin-top:20px;">
+            <select id="configSelect"><option value="">— load a saved configuration —</option>
+              ${Object.keys(SAVED_CONFIGS).map(n => `<option value="${n}">${n}</option>`).join('')}
+            </select>
+            <button class="btn small secondary" id="loadConfigBtn">Load</button>
+          </div>
+        `;
+        setTimeout(() => {
+          document.getElementById('scanNameInput').addEventListener('input', e => { wizard.scanName = e.target.value; });
+          document.getElementById('modelSelect').addEventListener('change', e => { wizard.model = e.target.value; });
+          document.getElementById('tempRange').addEventListener('input', e => {
+            wizard.temperature = Number(e.target.value);
+            document.getElementById('tempVal').textContent = e.target.value;
+          });
+          document.getElementById('refreshModelsBtn').addEventListener('click', async (e) => {
+            e.target.textContent = '…';
+            e.target.disabled = true;
+            await loadModels();
+            renderStep();
+          });
+          document.getElementById('loadConfigBtn').addEventListener('click', () => {
+            const sel = document.getElementById('configSelect').value;
+            const cfg = SAVED_CONFIGS[sel];
+            if (!cfg) return;
+            wizard.model = cfg.model;
+            wizard.temperature = cfg.temperature;
+            wizard.selectedObjectives = new Set(cfg.objectiveIds && cfg.objectiveIds.length ? cfg.objectiveIds : OBJECTIVES.map(o => o.id));
+            wizard.selectedTechniques = new Set(cfg.techniqueIds && cfg.techniqueIds.length ? cfg.techniqueIds : ['none']);
+            wizard.selectedModifiers = new Set(cfg.modifierIds && cfg.modifierIds.length ? cfg.modifierIds : ['none']);
+            renderStep();
+          });
+        }, 0);
+      }
+
+      if (name === 'objectives') {
+        panel.innerHTML = stepHeader(4, 'Select attack objectives') + `
+          <p class="sub">$ Type "/" to search through options (in the real CLI). All objectives are selected by default — the most comprehensive scan.</p>
+          <div class="bulk-select-row">
+            <button type="button" class="btn small secondary" id="selectAllObjBtn">Select All</button>
+            <button type="button" class="btn small secondary" id="selectNoneObjBtn">Select None</button>
+            <span class="field-hint" style="margin:0;">(mirrors the real CLI's <code>ctrl+a</code> select-all / select-none shortcut)</span>
+          </div>
+          <div class="optlist">
+            ${OBJECTIVES.map(o => `
+              <label class="optrow ${wizard.selectedObjectives.has(o.id) ? 'selected' : ''}">
+                <input type="checkbox" ${wizard.selectedObjectives.has(o.id) ? 'checked' : ''} data-obj-cb="${o.id}" />
+                <div>
+                  <div class="title">${wizard.selectedObjectives.has(o.id) ? '✓ ' : ''}${o.name}</div>
+                  <div class="desc">${o.description}</div>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+        `;
+        setTimeout(() => {
+          panel.querySelectorAll('[data-obj-cb]').forEach(cb => {
+            cb.addEventListener('change', () => {
+              const id = cb.dataset.objCb;
+              if (cb.checked) wizard.selectedObjectives.add(id); else wizard.selectedObjectives.delete(id);
+              renderStep();
+            });
+          });
+          document.getElementById('selectAllObjBtn').addEventListener('click', () => {
+            wizard.selectedObjectives = new Set(OBJECTIVES.map(o => o.id));
+            renderStep();
+          });
+          document.getElementById('selectNoneObjBtn').addEventListener('click', () => {
+            wizard.selectedObjectives = new Set();
+            renderStep();
+          });
+        }, 0);
+      }
+
+      if (name === 'techniques') {
+        panel.innerHTML = stepHeader(5, 'Select attack techniques') + `
+          <p class="sub">$ Each selected technique rewrites the base prompt (e.g. wraps it in a jailbreak framing) before it's sent. Default: None.</p>
+          <div class="bulk-select-row">
+            <button type="button" class="btn small secondary" id="selectAllTechBtn">Select All</button>
+            <button type="button" class="btn small secondary" id="selectNoneTechBtn">Select None</button>
+            <span class="field-hint" style="margin:0;">(mirrors the real CLI's <code>ctrl+a</code> select-all / select-none shortcut)</span>
+          </div>
+          <div class="optlist">
+            ${TECHNIQUES.map(t => `
+              <label class="optrow ${wizard.selectedTechniques.has(t.id) ? 'selected' : ''}">
+                <input type="checkbox" ${wizard.selectedTechniques.has(t.id) ? 'checked' : ''} data-tech-cb="${t.id}" />
+                <div><div class="title">${wizard.selectedTechniques.has(t.id) ? '✓ ' : '• '}${t.name}</div></div>
+              </label>
+            `).join('')}
+          </div>
+        `;
+        setTimeout(() => {
+          panel.querySelectorAll('[data-tech-cb]').forEach(cb => {
+            cb.addEventListener('change', () => {
+              toggleMultiSelect(wizard.selectedTechniques, cb.dataset.techCb, cb.checked);
+              renderStep();
+            });
+          });
+          document.getElementById('selectAllTechBtn').addEventListener('click', () => {
+            wizard.selectedTechniques = new Set(TECHNIQUES.map(t => t.id));
+            renderStep();
+          });
+          document.getElementById('selectNoneTechBtn').addEventListener('click', () => {
+            wizard.selectedTechniques = new Set(['none']);
+            renderStep();
+          });
+        }, 0);
+      }
+
+      if (name === 'modifiers') {
+        panel.innerHTML = stepHeader(6, 'Select attack modifiers') + `
+          <p class="sub">$ Each selected modifier re-encodes the final prompt text (e.g. Base64) after techniques are applied. Default: None.</p>
+          <div class="bulk-select-row">
+            <button type="button" class="btn small secondary" id="selectAllModBtn">Select All</button>
+            <button type="button" class="btn small secondary" id="selectNoneModBtn">Select None</button>
+            <span class="field-hint" style="margin:0;">(mirrors the real CLI's <code>ctrl+a</code> select-all / select-none shortcut)</span>
+          </div>
+          <div class="optlist">
+            ${MODIFIERS.map(m => `
+              <label class="optrow ${wizard.selectedModifiers.has(m.id) ? 'selected' : ''}">
+                <input type="checkbox" ${wizard.selectedModifiers.has(m.id) ? 'checked' : ''} data-mod-cb="${m.id}" />
+                <div><div class="title">${wizard.selectedModifiers.has(m.id) ? '✓ ' : '• '}${m.name}</div></div>
+              </label>
+            `).join('')}
+          </div>
+        `;
+        setTimeout(() => {
+          panel.querySelectorAll('[data-mod-cb]').forEach(cb => {
+            cb.addEventListener('change', () => {
+              toggleMultiSelect(wizard.selectedModifiers, cb.dataset.modCb, cb.checked);
+              renderStep();
+            });
+          });
+          document.getElementById('selectAllModBtn').addEventListener('click', () => {
+            wizard.selectedModifiers = new Set(MODIFIERS.map(m => m.id));
+            renderStep();
+          });
+          document.getElementById('selectNoneModBtn').addEventListener('click', () => {
+            wizard.selectedModifiers = new Set(['none']);
+            renderStep();
+          });
+        }, 0);
+      }
+
+      if (name === 'review') {
+        panel.innerHTML = stepHeader(7, 'Pre-Scan Summary') + `
+          <p class="sub">$ Confirm the configuration below, then start the real scan. This runs the actual <code>tmas aiscan llm</code> binary against the model and the Vision One judge — it can take several minutes and uses real Vision One quota.</p>
+          <table class="summary-table">
+            <tr><td>AI Target</td><td>Local Ollama Model</td></tr>
+            <tr><td>Vision One API Key</td><td>${SETTINGS.hasApiKey || wizard.apiKeyInput ? 'Provided' : '(none)'}</td></tr>
+            <tr><td>Scan Group Name</td><td>${wizard.scanName || '(unnamed)'}</td></tr>
+            <tr><td>Target Model</td><td>${wizard.model || '(none selected)'}</td></tr>
+          </table>
+          <div id="preScanTableWrap" style="margin-top:16px;">Loading summary…</div>
+          <div class="save-config-row">
+            <input type="text" id="configNameInput" placeholder="Save this configuration as… (optional)" />
+            <button class="btn small secondary" id="saveConfigBtn">Save Config</button>
+          </div>
+          <div class="save-msg" id="configSaveMsg"></div>
+        `;
+        renderPreScanSummary();
+        setTimeout(() => {
+          document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+            const nameEl = document.getElementById('configNameInput');
+            const nm = nameEl.value.trim();
+            const msg = document.getElementById('configSaveMsg');
+            if (!nm) { msg.textContent = 'Enter a name first.'; msg.className = 'save-msg err'; return; }
+            await fetch('/api/configs', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: nm, model: wizard.model,
+                objectiveIds: Array.from(wizard.selectedObjectives),
+                techniqueIds: Array.from(wizard.selectedTechniques),
+                modifierIds: Array.from(wizard.selectedModifiers),
+                temperature: wizard.temperature,
+              }),
+            });
+            await loadConfigList();
+            nameEl.value = '';
+            msg.textContent = `✓ Saved as "${nm}".`;
+            msg.className = 'save-msg ok';
+          });
+        }, 0);
+      }
+    }
+
+    async function renderPreScanSummary() {
+      const wrap = document.getElementById('preScanTableWrap');
+      if (!wrap) return;
+      try {
+        const res = await fetch('/api/scan/preview', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            objectiveIds: Array.from(wizard.selectedObjectives),
+            techniqueIds: Array.from(wizard.selectedTechniques),
+            modifierIds: Array.from(wizard.selectedModifiers),
+          }),
+        });
+        const data = await res.json();
+        wrap.innerHTML = `
+          <div style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);margin-bottom:8px;">
+            ${data.objectiveCount} objective${data.objectiveCount === 1 ? '' : 's'} selected — tmas computes the exact number of attack attempts at scan time.
+          </div>
+          <table class="summary-table">
+            <tr><td style="width:auto;font-weight:700;">Objective</td><td>Techniques</td><td>Modifiers</td></tr>
+            ${data.rows.map(r => `
+              <tr><td>${r.objective_name}</td><td>${r.techniques}</td><td>${r.modifiers}</td></tr>
+            `).join('')}
+          </table>
+        `;
+      } catch (e) {
+        wrap.innerHTML = '<div class="step-error">Could not load the pre-scan summary.</div>';
+      }
+    }
+
+    // Plain independent multi-select — confirmed against a live capture of
+    // the real wizard's Pre-Scan Summary: selecting a real technique does NOT
+    // clear "None"; both remain active simultaneously and the attempt count
+    // multiplies accordingly (e.g. a 5-prompt objective showed as (10) once
+    // one extra technique was added alongside None). "None" is just another
+    // list item, not a reset sentinel — only fall back to it if the set is
+    // ever left completely empty (nothing selected at all isn't meaningful).
+    function toggleMultiSelect(set, id, checked) {
+      if (checked) set.add(id); else set.delete(id);
+      if (set.size === 0) set.add('none');
+    }
+
+    function validateStep() {
+      const name = STEPS[wizard.step];
+      if (name === 'apikey' && !SETTINGS.hasApiKey && !wizard.apiKeyInput.trim()) {
+        alert('Enter a Vision One API key to continue — the real CLI requires TMAS_API_KEY before it will run.');
+        return false;
+      }
+      if (name === 'configure' && !wizard.model) {
+        alert('Select a target model first — check that Ollama has at least one model pulled.');
+        return false;
+      }
+      if (name === 'objectives' && wizard.selectedObjectives.size === 0) {
+        alert('Select at least one attack objective.');
+        return false;
+      }
+      return true;
+    }
+
+    async function persistApiKeyIfNeeded() {
+      if (!wizard.apiKeyInput.trim()) return;
+      await fetch('/api/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: wizard.apiKeyInput.trim(), region: wizard.region }),
+      });
+      await loadSettings();
+      wizard.apiKeyInput = '';
+      wizard.changingKey = false;
+    }
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (wizard.step > 0) { wizard.step--; renderStep(); }
+    });
+    document.getElementById('nextBtn').addEventListener('click', async () => {
+      if (!validateStep()) return;
+      if (STEPS[wizard.step] === 'apikey') await persistApiKeyIfNeeded();
+      if (STEPS[wizard.step] === 'review') { await runScan(); return; }
+      wizard.step++;
+      renderStep();
     });
 
-    // --- Scan execution + live progress ---
+    // "Change API Key" top-bar button jumps back to step 1 without losing
+    // whatever else has already been configured.
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+      wizard.changingKey = true;
+      wizard.step = 0;
+      document.getElementById('wizardShell').style.display = 'block';
+      document.getElementById('wizardShell').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      renderStep();
+    });
+
+    // ---------------- Scan execution + live progress ----------------
+    const SEV_CLASS = { Critical: 'fail', High: 'fail', Medium: 'error', Low: 'info' };
+
+    function esc(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     function renderSteps(scan) {
-      const body = document.getElementById('stepsBody');
-      document.getElementById('stepsTable').style.display = 'table';
-      document.getElementById('emptyState').style.display = 'none';
-      body.innerHTML = scan.steps.map(s => `
-        <tr>
-          <td><b>${s.owasp_id}</b></td>
-          <td>${s.label || s.category_name}</td>
-          <td><span class="status-pill ${s.status}">${s.status}</span></td>
-          <td>
-            ${s.note ? s.note : ''}
-            ${s.evidence ? `<div class="evidence">"${s.evidence}"</div>` : ''}
-          </td>
-        </tr>
-      `).join('');
+      // Progress line
+      const total = scan.total_attempts;
+      const done = scan.completed_attempts || 0;
+      let label;
+      if (scan.status === 'running') {
+        label = total
+          ? `Running the real tmas scan — ${total} attack attempts queued (results appear when the scan finishes)…`
+          : 'Preparing the scan (loading the model can take up to a minute on a cold start)…';
+        const pct = total ? Math.min(95, Math.round((done / total) * 100)) : 8;
+        document.getElementById('progressFill').style.width = pct + '%';
+      } else if (scan.status === 'failed') {
+        label = 'Scan failed.';
+        document.getElementById('progressFill').style.width = '100%';
+      } else if (scan.status === 'cancelled') {
+        label = 'Scan cancelled.';
+      } else {
+        label = `Scan complete — ${scan.results.length} attack attempts evaluated, ${scan.succeeded_count} succeeded.`;
+        document.getElementById('progressFill').style.width = '100%';
+      }
+      document.getElementById('progressLabel').textContent = label;
 
-      const pct = scan.total_steps ? Math.round((scan.completed_steps / scan.total_steps) * 100) : 0;
-      document.getElementById('progressFill').style.width = pct + '%';
-      document.getElementById('progressLabel').textContent =
-        `${scan.completed_steps} / ${scan.total_steps} tests complete — ${scan.status}`;
-
-      const counts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
-      scan.steps.forEach(s => {
-        if (s.status === 'fail' && counts[s.severity] !== undefined) counts[s.severity]++;
-      });
+      // Severity tiles (from the real Vision One judge's severity ratings)
+      const counts = scan.severity_counts || { Critical: 0, High: 0, Medium: 0, Low: 0 };
       const summary = document.getElementById('summaryRow');
       summary.style.display = 'flex';
       summary.innerHTML = Object.entries(counts).map(([sev, n]) => `
         <div class="sumtile ${sev}"><div class="n">${n}</div><div class="l">${sev}</div></div>
       `).join('');
 
-      if (scan.status === 'completed' || scan.status === 'cancelled') {
-        document.getElementById('cancelBtn').style.display = 'none';
-        document.getElementById('startBtn').disabled = false;
+      // Error box for failed scans
+      if (scan.status === 'failed') {
+        document.getElementById('resultsCard').style.display = 'block';
+        document.getElementById('stepsTable').style.display = 'none';
+        let box = document.getElementById('scanErrorBox');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'scanErrorBox';
+          box.className = 'step-error';
+          box.style.margin = '16px';
+          document.getElementById('resultsCard').appendChild(box);
+        }
+        box.textContent = 'tmas reported: ' + (scan.error || 'unknown error');
+      }
+
+      // Results table (only meaningful once results exist)
+      if (scan.results && scan.results.length) {
+        document.getElementById('resultsCard').style.display = 'block';
+        document.getElementById('stepsTable').style.display = 'table';
+        const body = document.getElementById('stepsBody');
+        body.innerHTML = scan.results.map(r => {
+          const attack = [ (r.techniques || []).join(', '), (r.modifiers || []).join(', ') ]
+            .filter(x => x && x !== 'None').join(' + ') || 'None';
+          const outClass = r.succeeded ? 'fail' : 'pass';
+          const outLabel = r.succeeded ? 'succeeded' : 'failed';
+          const sevPill = r.severity ? `<span class="status-pill ${SEV_CLASS[r.severity] || 'info'}">${r.severity}</span>` : '';
+          const mitre = (r.mitre || []).length ? `<div class="evidence">MITRE ATLAS: ${esc(r.mitre.join(', '))}</div>` : '';
+          return `
+            <tr>
+              <td>${esc(r.objective)}</td>
+              <td>${esc(attack)}</td>
+              <td><span class="status-pill ${outClass}">${outLabel}</span>${r.succeeded ? ' ' + sevPill : ''}</td>
+              <td>
+                ${esc(r.evaluation)}
+                ${r.response ? `<div class="evidence">model said: "${esc(r.response)}"</div>` : ''}
+                ${mitre}
+              </td>
+            </tr>`;
+        }).join('');
+      }
+
+      if (scan.status === 'completed' || scan.status === 'cancelled' || scan.status === 'failed') {
+        document.getElementById('cancelWizardBtn').style.display = 'none';
         document.getElementById('ctaSection').style.display = 'flex';
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
         if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
       }
     }
 
+    let pollFailCount = 0;
     async function pollScan() {
       if (!currentScanId) return;
       const res = await fetch('/api/scan/' + currentScanId);
-      if (!res.ok) return;
+      if (!res.ok) {
+        pollFailCount++;
+        if (res.status === 404 || pollFailCount >= 3) {
+          if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+          if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+          document.getElementById('progressLabel').textContent = 'Lost track of this scan (the server may have restarted). Reload the page to start a new one.';
+        }
+        return;
+      }
+      pollFailCount = 0;
       const scan = await res.json();
       renderSteps(scan);
     }
@@ -509,28 +848,27 @@
       document.getElementById('elapsedLabel').textContent = `elapsed: ${secs}s`;
     }
 
-    document.getElementById('startBtn').addEventListener('click', async () => {
-      const model = document.getElementById('modelSelect').value;
-      if (!model) return;
-      const testIds = collectTestIds();
-      if (!testIds.length) { alert('Select at least one test.'); return; }
-
-      document.getElementById('startBtn').disabled = true;
-      document.getElementById('cancelBtn').style.display = 'block';
+    async function runScan() {
+      document.getElementById('nextBtn').disabled = true;
+      document.getElementById('nextBtn').textContent = 'Starting…';
+      document.getElementById('cancelWizardBtn').style.display = 'inline-block';
       document.getElementById('progressSection').style.display = 'block';
       document.getElementById('ctaSection').style.display = 'none';
 
       const res = await fetch('/api/scan', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model, testIds,
-          scanName: document.getElementById('scanNameInput').value,
-          numPredict: Number(document.getElementById('maxTokensInput').value),
-          temperature: Number(document.getElementById('tempRange').value),
+          model: wizard.model,
+          objectiveIds: Array.from(wizard.selectedObjectives),
+          techniqueIds: Array.from(wizard.selectedTechniques),
+          modifierIds: Array.from(wizard.selectedModifiers),
+          scanName: wizard.scanName,
+          temperature: wizard.temperature,
         }),
       });
+      document.getElementById('nextBtn').disabled = false;
+      document.getElementById('nextBtn').textContent = 'Confirm & Run Scan';
       if (!res.ok) {
-        document.getElementById('startBtn').disabled = false;
         const err = await res.json().catch(() => ({}));
         alert('Could not start scan: ' + (err.detail || 'check that Ollama has at least one model pulled.'));
         return;
@@ -538,18 +876,20 @@
       const data = await res.json();
       currentScanId = data.scanId;
       scanStartTime = Date.now();
+      document.getElementById('wizardShell').style.display = 'none';
       pollScan();
       pollTimer = setInterval(pollScan, 1200);
       elapsedTimer = setInterval(tickElapsed, 1000);
-    });
+    }
 
-    document.getElementById('cancelBtn').addEventListener('click', async () => {
+    document.getElementById('cancelWizardBtn').addEventListener('click', async () => {
       if (!currentScanId) return;
       await fetch('/api/scan/' + currentScanId + '/cancel', { method: 'POST' });
     });
 
     (async () => {
-      await Promise.all([loadModels(), loadCategories(), loadSettings(), loadConfigList()]);
+      await Promise.all([loadModels(), loadTaxonomy(), loadSettings(), loadConfigList()]);
+      renderStep();
     })();
   </script>
 </body>
