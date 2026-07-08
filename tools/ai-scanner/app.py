@@ -181,6 +181,14 @@ def build_config_yaml(scan_name, model, temperature, objective_ids, technique_id
         f'  name: "{_yaml_escape(scan_name or "webscan")}"',
         "settings:",
         f"  concurrency: {CONCURRENCY}",
+        # Retry transient target failures — the bundled Ollama is CPU-only, so
+        # a busy moment can time out a single attack; without this the attack
+        # would be dropped instead of retried. Matches the real wizard default.
+        "  retry:",
+        "    max_reattempts: 3",
+        "    initial_delay_ms: 500",
+        "    max_delay_ms: 2000",
+        "    backoff_factor: 2.0",
         "  redaction:",
         "    enabled: true",
         "attack_objectives:",
@@ -200,12 +208,44 @@ def build_config_yaml(scan_name, model, temperature, objective_ids, technique_id
     return "\n".join(lines) + "\n"
 
 
+def warm_up_model(model: str) -> None:
+    """Force the target model to load into Ollama before tmas validates the
+    target. A cold CPU model load can take ~60s, which exceeds tmas's target-
+    validation deadline and makes a scan fail with "context deadline exceeded".
+    Warming it first (with a generous timeout) avoids that. keep_alive holds
+    it in memory long enough for the scan itself to start."""
+    payload = json.dumps({
+        "model": model,
+        "prompt": "ok",
+        "stream": False,
+        "keep_alive": "15m",
+        "options": {"num_predict": 1},
+    }).encode()
+    req = urllib.request.Request(
+        f"{OLLAMA_BASE}/api/generate", data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            resp.read()
+    except (urllib.error.URLError, OSError):
+        pass  # best-effort; tmas will surface a clear error if the model is truly unreachable
+
+
 def run_scan(scan_id: str, config_yaml: str, api_key: str) -> None:
     cfg_path = os.path.join(SCAN_WORKDIR, f"{scan_id}.yaml")
     out_path = os.path.join(SCAN_WORKDIR, f"{scan_id}.json")
     log_path = os.path.join(SCAN_WORKDIR, f"{scan_id}.log")
     with open(cfg_path, "w") as f:
         f.write(config_yaml)
+
+    # Warm the target model so tmas's target validation doesn't time out on a
+    # cold load. Marked as a distinct phase so the UI can explain the wait.
+    with SCANS_LOCK:
+        SCANS[scan_id]["phase"] = "warming"
+    warm_up_model(SCANS[scan_id]["model"])
+    with SCANS_LOCK:
+        SCANS[scan_id]["phase"] = "scanning"
 
     env = dict(os.environ)
     env["TMAS_API_KEY"] = api_key
@@ -255,7 +295,7 @@ def run_scan(scan_id: str, config_yaml: str, api_key: str) -> None:
     rc = proc.returncode
 
     if rc != 0:
-        tail = _log_tail(log_path)
+        tail = _clean_error(log_path)
         with SCANS_LOCK:
             SCANS[scan_id]["status"] = "failed"
             SCANS[scan_id]["error"] = tail or f"tmas exited with code {rc}"
@@ -287,14 +327,36 @@ def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _log_tail(log_path: str, n: int = 1200) -> str:
+def _clean_error(log_path: str) -> str:
+    """Pull just the meaningful error out of tmas's log, discarding ANSI codes
+    and the Pre-Scan Summary box-drawing table so the UI shows a readable line."""
     try:
         with open(log_path) as f:
             txt = f.read()
-        txt = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", txt)
-        return txt[-n:].strip()
     except OSError:
         return ""
+    txt = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", txt)
+    txt = txt.replace("\r", "")
+    lines = [ln.strip() for ln in txt.splitlines()]
+    # Prefer explicit error lines; skip anything that's part of the summary
+    # table (box-drawing chars) or the objective/technique menu rows.
+    box_chars = set("│┃┌┐└┘├┤┬┴┼─")
+    candidates = []
+    for ln in lines:
+        if not ln:
+            continue
+        if any(c in box_chars for c in ln):
+            continue
+        low = ln.lower()
+        if ("error" in low or "invalid" in low or "deadline exceeded" in low
+                or "unable to" in low or "failed" in low or "unauthorized" in low):
+            candidates.append(ln)
+    if candidates:
+        # The last such line is usually the actionable one.
+        return candidates[-1][:400]
+    # Fallback: last few non-box lines.
+    tail = [ln for ln in lines if ln and not any(c in box_chars for c in ln)]
+    return (" ".join(tail[-3:]))[:400]
 
 
 def _scrape_progress(scan_id: str, log_path: str) -> None:
@@ -397,6 +459,7 @@ async def api_start_scan(body: dict):
         "model": model,
         "scan_name": scan_name,
         "status": "running",
+        "phase": "starting",
         "cancel_requested": False,
         "started_at": _now(),
         "finished_at": None,
@@ -428,6 +491,7 @@ def public_scan_view(scan: dict) -> dict:
         "model": scan["model"],
         "scan_name": scan["scan_name"],
         "status": scan["status"],
+        "phase": scan.get("phase", ""),
         "started_at": scan["started_at"],
         "finished_at": scan["finished_at"],
         "total_attempts": scan["total_attempts"],

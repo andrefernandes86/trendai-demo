@@ -274,7 +274,17 @@
     let MODIFIERS = [];
     let MODELS = [];
     let SAVED_CONFIGS = {};
-    let SETTINGS = { hasApiKey: false, maskedKey: '', region: 'us-1' };
+    let SETTINGS = { hasApiKey: false, maskedKey: '', region: 'us-east-1' };
+    // Vision One service region codes accepted by `tmas --region` (default us-east-1).
+    const REGIONS = [
+      { code: 'us-east-1', label: 'United States (us-east-1)' },
+      { code: 'eu-central-1', label: 'Europe (eu-central-1)' },
+      { code: 'ap-northeast-1', label: 'Japan (ap-northeast-1)' },
+      { code: 'ap-southeast-1', label: 'Singapore (ap-southeast-1)' },
+      { code: 'ap-southeast-2', label: 'Australia (ap-southeast-2)' },
+      { code: 'ap-south-1', label: 'India (ap-south-1)' },
+      { code: 'me-central-1', label: 'Middle East / UAE (me-central-1)' },
+    ];
     let currentScanId = null;
     let pollTimer = null;
     let scanStartTime = null;
@@ -284,7 +294,7 @@
       step: 0,
       apiKeyInput: '',        // only holds a NEW key being typed; never pre-filled from the server
       changingKey: false,     // true once the user clicks "Use a different key"
-      region: 'us-1',
+      region: 'us-east-1',
       scanName: '',
       model: '',
       temperature: 0.6,
@@ -376,16 +386,17 @@
           ` : `
             <label class="field-label" for="apiKeyInput">API Key</label>
             <input type="password" id="apiKeyInput" placeholder="Enter your Vision One API key" autocomplete="off" value="${wizard.apiKeyInput}" />
-            <label class="field-label" for="regionSelect">Region</label>
+            <label class="field-label" for="regionSelect">Vision One Region</label>
             <select id="regionSelect">
-              ${['us-1','eu-1','jp-1','sg-1','au-1','in-1'].map(r => `<option value="${r}" ${wizard.region===r?'selected':''}>${r}</option>`).join('')}
+              ${REGIONS.map(r => `<option value="${r.code}" ${wizard.region===r.code?'selected':''}>${r.label}</option>`).join('')}
             </select>
             ${SETTINGS.hasApiKey ? '<button type="button" class="btn small secondary" id="cancelChangeKeyBtn" style="margin-top:10px;">Cancel — keep saved key</button>' : ''}
           `}
           <div class="settings-note">
-            ⚠ This demo's scan engine runs entirely locally against this host's Ollama instance.
-            The key is stored for UI/workflow parity with the real product only — nothing here is
-            transmitted to Vision One.
+            ⚠ This key is used to run a <b>real</b> <code>tmas aiscan llm</code> scan: every attack the
+            scanner generates is sent to the target model and evaluated by the Vision One hosted judge
+            in the selected region, which consumes real Vision One quota on your tenant. The key is held
+            in memory only — never written to disk, never returned to the browser in plaintext.
           </div>
         `;
         setTimeout(() => {
@@ -748,14 +759,18 @@
     function renderSteps(scan) {
       // Progress line
       const total = scan.total_attempts;
-      const done = scan.completed_attempts || 0;
       let label;
       if (scan.status === 'running') {
-        label = total
-          ? `Running the real tmas scan — ${total} attack attempts queued (results appear when the scan finishes)…`
-          : 'Preparing the scan (loading the model can take up to a minute on a cold start)…';
-        const pct = total ? Math.min(95, Math.round((done / total) * 100)) : 8;
-        document.getElementById('progressFill').style.width = pct + '%';
+        if (scan.phase === 'warming') {
+          label = 'Loading the target model into memory (a cold start can take up to a minute)…';
+          document.getElementById('progressFill').style.width = '5%';
+        } else if (total) {
+          label = `Running the real tmas scan — ${total} attack attempts against the model + Vision One judge. Results appear when the scan finishes (this can take several minutes).`;
+          document.getElementById('progressFill').style.width = '40%';
+        } else {
+          label = 'Starting the scan…';
+          document.getElementById('progressFill').style.width = '15%';
+        }
       } else if (scan.status === 'failed') {
         label = 'Scan failed.';
         document.getElementById('progressFill').style.width = '100%';
