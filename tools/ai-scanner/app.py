@@ -29,11 +29,16 @@ Requirements / notes:
     selection through to tmas verbatim.
 """
 
+import fcntl
 import json
 import os
+import pty
 import re
+import select
+import struct
 import subprocess
 import tempfile
+import termios
 import threading
 import urllib.error
 import urllib.request
@@ -255,47 +260,92 @@ def run_scan(scan_id: str, config_yaml: str, api_key: str) -> None:
     env = dict(os.environ)
     env["TMAS_API_KEY"] = api_key
     env["TARGET_API_KEY"] = "ollama-local-no-auth"
-    env["TERM"] = "dumb"
+    # A real terminal type so tmas renders its live progress UI (it suppresses
+    # the animated progress when it detects a non-TTY / dumb terminal).
+    env["TERM"] = "xterm-256color"
 
     cmd = [TMAS_BIN, "aiscan", "llm", "--config", cfg_path,
            "--output", f"json={out_path}", "--yes",
            "--region", SETTINGS.get("region", "us-east-1")]
 
-    logf = open(log_path, "w")
+    # Run tmas attached to a pseudo-terminal so it believes it's interactive
+    # and streams its live progress bar (piping to a file makes it print the
+    # pre-scan summary and then go silent until the very end). We copy the PTY
+    # output to the log file as it arrives, which the /api/scan/{id}/log
+    # endpoint tails for the live console.
+    master_fd, slave_fd = pty.openpty()
     try:
-        proc = subprocess.Popen(cmd, stdout=logf, stderr=subprocess.STDOUT, env=env, cwd=SCAN_WORKDIR)
+        # Give the PTY a generous window so the summary table / progress bar
+        # render without wrapping oddly.
+        fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 50, 140, 0, 0))
+    except OSError:
+        pass
+
+    logf = open(log_path, "wb")
+    try:
+        proc = subprocess.Popen(
+            cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd,
+            env=env, cwd=SCAN_WORKDIR, start_new_session=True, close_fds=True,
+        )
     except OSError as e:
+        os.close(master_fd); os.close(slave_fd); logf.close()
         with SCANS_LOCK:
             SCANS[scan_id]["status"] = "failed"
             SCANS[scan_id]["error"] = f"Could not launch tmas: {e}"
             SCANS[scan_id]["finished_at"] = _now()
-        logf.close()
         return
 
+    os.close(slave_fd)  # parent doesn't write; only reads the master side
     with SCANS_LOCK:
         SCANS[scan_id]["pid"] = proc.pid
 
-    # Poll: wait for the process, periodically scraping the log for the
-    # pre-scan total-attempt count so the UI can show it.
+    # Read the PTY continuously, appending to the log file, until tmas exits.
     while True:
         try:
-            proc.wait(timeout=2)
+            r, _, _ = select.select([master_fd], [], [], 1.0)
+            if master_fd in r:
+                try:
+                    chunk = os.read(master_fd, 65536)
+                except OSError:
+                    chunk = b""
+                if chunk:
+                    logf.write(chunk); logf.flush()
+        except (OSError, ValueError):
+            pass
+
+        if proc.poll() is not None:
+            # Drain any trailing output.
+            while True:
+                try:
+                    r, _, _ = select.select([master_fd], [], [], 0.2)
+                    if master_fd not in r:
+                        break
+                    chunk = os.read(master_fd, 65536)
+                    if not chunk:
+                        break
+                    logf.write(chunk); logf.flush()
+                except OSError:
+                    break
             break
-        except subprocess.TimeoutExpired:
-            _scrape_progress(scan_id, log_path)
-            with SCANS_LOCK:
-                if SCANS[scan_id].get("cancel_requested"):
-                    proc.terminate()
-                    try:
-                        proc.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        proc.kill()
-                    SCANS[scan_id]["status"] = "cancelled"
-                    SCANS[scan_id]["finished_at"] = _now()
-                    logf.close()
-                    return
+
+        _scrape_progress(scan_id, log_path)
+        with SCANS_LOCK:
+            if SCANS[scan_id].get("cancel_requested"):
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                SCANS[scan_id]["status"] = "cancelled"
+                SCANS[scan_id]["finished_at"] = _now()
+                logf.close(); os.close(master_fd)
+                return
 
     logf.close()
+    try:
+        os.close(master_fd)
+    except OSError:
+        pass
     _scrape_progress(scan_id, log_path)
     rc = proc.returncode
 
@@ -337,8 +387,14 @@ def _clean_log_for_display(log_path: str, max_chars: int = 8000) -> str:
     strip ANSI escapes, apply carriage-return overwrites, and collapse the
     repeated spinner/progress frames so the panel reads like a clean transcript."""
     try:
-        with open(log_path, errors="replace") as f:
-            raw = f.read()
+        # Only read the tail — a PTY-driven progress UI can write megabytes of
+        # redraw frames over a long scan; we only need the most recent state.
+        with open(log_path, "rb") as fb:
+            try:
+                fb.seek(-262144, os.SEEK_END)
+            except OSError:
+                fb.seek(0)
+            raw = fb.read().decode("utf-8", errors="replace")
     except OSError:
         return ""
     # Strip ANSI CSI / OSC / charset escapes.
@@ -348,8 +404,9 @@ def _clean_log_for_display(log_path: str, max_chars: int = 8000) -> str:
     txt = txt.replace("\x1b", "")
     out = []
     for line in txt.split("\n"):
-        if "\r" in line:            # terminal overwrite: keep only the final state
-            line = line.split("\r")[-1]
+        if "\r" in line:            # terminal overwrite: keep the last non-empty state
+            segs = [s for s in line.split("\r") if s.strip()]
+            line = segs[-1] if segs else ""
         out.append(line.rstrip())
     cleaned = []
     for ln in out:
