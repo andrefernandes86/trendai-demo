@@ -163,6 +163,22 @@
   .progress-wrap { margin-bottom: 20px; }
   .progress-bar-track { height: 8px; background: var(--bg-2); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
   .progress-bar-fill { height: 100%; background: var(--red); transition: width 0.3s ease; }
+  /* animated "working" stripe while a scan is running */
+  .progress-bar-fill.working {
+    background-image: linear-gradient(45deg, rgba(255,255,255,0.18) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.18) 75%, transparent 75%, transparent);
+    background-size: 24px 24px; animation: barstripe 0.8s linear infinite;
+  }
+  @keyframes barstripe { 0% { background-position: 0 0; } 100% { background-position: 24px 0; } }
+
+  .tmas-console { margin-top: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #0b0b14; }
+  .tmas-console-head { display: flex; align-items: center; gap: 7px; padding: 7px 12px; background: var(--bg-2); border-bottom: 1px solid var(--border); }
+  .tmas-console-head .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .tmas-console-head .dot.r { background: #ff5f56; } .tmas-console-head .dot.y { background: #ffbd2e; } .tmas-console-head .dot.g { background: #27c93f; }
+  .tmas-console-title { margin-left: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--muted); }
+  .tmas-console-body {
+    margin: 0; padding: 14px 16px; max-height: 340px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
+    font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; line-height: 1.5; color: #cbd5e1;
+  }
   .progress-label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
 
   .summary-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -242,6 +258,13 @@
           <span id="progressLabel"></span>
           <span id="elapsedLabel"></span>
         </div>
+      </div>
+      <div class="tmas-console" id="tmasConsole" style="display:none;">
+        <div class="tmas-console-head">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="tmas-console-title">tmas aiscan llm — live output</span>
+        </div>
+        <pre class="tmas-console-body" id="tmasLog"></pre>
       </div>
     </div>
 
@@ -767,25 +790,30 @@
       // Progress line
       const total = scan.total_attempts;
       let label;
-      if (scan.status === 'running') {
+      const fill = document.getElementById('progressFill');
+      const running = scan.status === 'running';
+      fill.classList.toggle('working', running);
+      if (running) {
+        document.getElementById('tmasConsole').style.display = 'block';
         if (scan.phase === 'warming') {
           label = 'Loading the target model into memory (a cold start can take up to a minute)…';
-          document.getElementById('progressFill').style.width = '5%';
+          fill.style.width = '100%';
         } else if (total) {
-          label = `Running the real tmas scan — ${total} attack attempts against the model + Vision One judge. Results appear when the scan finishes (this can take several minutes).`;
-          document.getElementById('progressFill').style.width = '40%';
+          label = `Running the real tmas scan — ${total} attack attempts against the model + Vision One judge. Watch the live output below.`;
+          fill.style.width = '100%';
         } else {
           label = 'Starting the scan…';
-          document.getElementById('progressFill').style.width = '15%';
+          fill.style.width = '100%';
         }
       } else if (scan.status === 'failed') {
         label = 'Scan failed.';
-        document.getElementById('progressFill').style.width = '100%';
+        fill.style.width = '100%';
       } else if (scan.status === 'cancelled') {
         label = 'Scan cancelled.';
+        fill.style.width = '100%';
       } else {
         label = `Scan complete — ${scan.results.length} attack attempts evaluated, ${scan.succeeded_count} succeeded.`;
-        document.getElementById('progressFill').style.width = '100%';
+        fill.style.width = '100%';
       }
       document.getElementById('progressLabel').textContent = label;
 
@@ -862,6 +890,31 @@
       pollFailCount = 0;
       const scan = await res.json();
       renderSteps(scan);
+      pollLog();
+    }
+
+    async function pollLog() {
+      if (!currentScanId) return;
+      try {
+        const res = await fetch('/api/scan/' + currentScanId + '/log');
+        if (!res.ok) return;
+        const data = await res.json();
+        const pre = document.getElementById('tmasLog');
+        if (!pre) return;
+        const txt = data.log && data.log.trim()
+          ? data.log
+          : (data.phase === 'warming'
+              ? '· loading the target model into memory…'
+              : '· waiting for tmas to start…');
+        // Only update + autoscroll when content actually changed, so the
+        // user can scroll up to read without being yanked to the bottom.
+        if (pre.dataset.last !== txt) {
+          const atBottom = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 40;
+          pre.textContent = txt;
+          pre.dataset.last = txt;
+          if (atBottom) pre.scrollTop = pre.scrollHeight;
+        }
+      } catch (_) { /* transient */ }
     }
 
     function tickElapsed() {

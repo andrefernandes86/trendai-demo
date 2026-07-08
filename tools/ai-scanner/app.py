@@ -332,6 +332,35 @@ def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _clean_log_for_display(log_path: str, max_chars: int = 8000) -> str:
+    """Turn tmas's raw TUI stdout into readable plain text for the live panel:
+    strip ANSI escapes, apply carriage-return overwrites, and collapse the
+    repeated spinner/progress frames so the panel reads like a clean transcript."""
+    try:
+        with open(log_path, errors="replace") as f:
+            raw = f.read()
+    except OSError:
+        return ""
+    # Strip ANSI CSI / OSC / charset escapes.
+    txt = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", raw)
+    txt = re.sub(r"\x1b\][^\x07]*\x07", "", txt)
+    txt = re.sub(r"\x1b[=>()][A-Za-z0-9]?", "", txt)
+    txt = txt.replace("\x1b", "")
+    out = []
+    for line in txt.split("\n"):
+        if "\r" in line:            # terminal overwrite: keep only the final state
+            line = line.split("\r")[-1]
+        out.append(line.rstrip())
+    cleaned = []
+    for ln in out:
+        if ln == "" and (not cleaned or cleaned[-1] == ""):
+            continue            # collapse blank runs
+        if cleaned and cleaned[-1] == ln:
+            continue            # drop consecutive duplicate frames
+        cleaned.append(ln)
+    return "\n".join(cleaned).strip()[-max_chars:]
+
+
 def _clean_error(log_path: str) -> str:
     """Pull just the meaningful error out of tmas's log, discarding ANSI codes
     and the Pre-Scan Summary box-drawing table so the UI shows a readable line."""
@@ -516,6 +545,16 @@ def api_get_scan(scan_id: str):
         if not scan:
             raise HTTPException(404, "Scan not found.")
         return JSONResponse(public_scan_view(scan))
+
+
+@app.get("/api/scan/{scan_id}/log")
+def api_scan_log(scan_id: str):
+    with SCANS_LOCK:
+        scan = SCANS.get(scan_id)
+    if not scan:
+        raise HTTPException(404, "Scan not found.")
+    log_path = os.path.join(SCAN_WORKDIR, f"{scan_id}.log")
+    return {"log": _clean_log_for_display(log_path), "phase": scan.get("phase", ""), "status": scan["status"]}
 
 
 @app.post("/api/scan/{scan_id}/cancel")
