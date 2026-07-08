@@ -466,6 +466,16 @@ async def api_start_scan(body: dict):
     if not SETTINGS["api_key"]:
         raise HTTPException(400, "A Vision One API key is required — the real tmas CLI will not run without it.")
 
+    # Only one scan at a time. The bundled Ollama is CPU-only; running several
+    # tmas scans at once thrashes the box (each does its own concurrent model
+    # calls), which starves everything and makes tmas's target validation time
+    # out with "context deadline exceeded". Serializing scans is what keeps the
+    # host — and the scans themselves — healthy.
+    with SCANS_LOCK:
+        active = next((s for s in SCANS.values() if s["status"] == "running"), None)
+    if active:
+        raise HTTPException(409, "A scan is already running. Wait for it to finish or cancel it before starting another.")
+
     model = str(body.get("model", "")).strip()
     if not model:
         raise HTTPException(400, "model is required")
