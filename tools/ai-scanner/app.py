@@ -50,7 +50,12 @@ OLLAMA_BASE = "http://ollama:11434"
 TARGET_ENDPOINT = "http://ollama:11434/v1/"
 TMAS_BIN = "/usr/local/bin/tmas"
 SCAN_WORKDIR = "/tmp/aiscanner"
-CONCURRENCY = 4  # keep modest — the bundled Ollama is CPU-only
+# The bundled Ollama is CPU-only; a single gemma2:2b generation already uses
+# every core, so running many attacks concurrently just thrashes the box
+# (load average spiked to ~18 at concurrency 4, starving sshd and the other
+# containers). 2 keeps the host responsive while still overlapping the model
+# call of one attack with the judge call of another.
+CONCURRENCY = 2
 
 os.makedirs(SCAN_WORKDIR, exist_ok=True)
 

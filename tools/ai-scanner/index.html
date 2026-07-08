@@ -572,7 +572,9 @@
             });
           });
           document.getElementById('selectAllTechBtn').addEventListener('click', () => {
-            wizard.selectedTechniques = new Set(TECHNIQUES.map(t => t.id));
+            // "All" means all real techniques — None is exclusive, so it's not included.
+            wizard.selectedTechniques = new Set(TECHNIQUES.filter(t => t.id !== 'none').map(t => t.id));
+            if (wizard.selectedTechniques.size === 0) wizard.selectedTechniques.add('none');
             renderStep();
           });
           document.getElementById('selectNoneTechBtn').addEventListener('click', () => {
@@ -607,7 +609,9 @@
             });
           });
           document.getElementById('selectAllModBtn').addEventListener('click', () => {
-            wizard.selectedModifiers = new Set(MODIFIERS.map(m => m.id));
+            // "All" means all real modifiers — None is exclusive, so it's not included.
+            wizard.selectedModifiers = new Set(MODIFIERS.filter(m => m.id !== 'none').map(m => m.id));
+            if (wizard.selectedModifiers.size === 0) wizard.selectedModifiers.add('none');
             renderStep();
           });
           document.getElementById('selectNoneModBtn').addEventListener('click', () => {
@@ -688,15 +692,18 @@
       }
     }
 
-    // Plain independent multi-select — confirmed against a live capture of
-    // the real wizard's Pre-Scan Summary: selecting a real technique does NOT
-    // clear "None"; both remain active simultaneously and the attempt count
-    // multiplies accordingly (e.g. a 5-prompt objective showed as (10) once
-    // one extra technique was added alongside None). "None" is just another
-    // list item, not a reset sentinel — only fall back to it if the set is
-    // ever left completely empty (nothing selected at all isn't meaningful).
+    // "None" is mutually exclusive: it means "no technique/modifier applied",
+    // so it cannot coexist with a real selection. Checking None clears the
+    // rest; checking any real option clears None; emptying the set falls back
+    // to None.
     function toggleMultiSelect(set, id, checked) {
-      if (checked) set.add(id); else set.delete(id);
+      if (id === 'none') {
+        set.clear();
+        if (checked) set.add('none');
+      } else {
+        set.delete('none');
+        if (checked) set.add(id); else set.delete(id);
+      }
       if (set.size === 0) set.add('none');
     }
 
