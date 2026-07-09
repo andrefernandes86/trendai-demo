@@ -356,47 +356,72 @@ def run_scan(scan_id: str, config_yaml: str, api_key: str, target_api_key: str) 
     with SCANS_LOCK:
         SCANS[scan_id]["pid"] = proc.pid
 
-    # Read the PTY continuously, appending to the log file, until tmas exits.
-    while True:
+    # Defense in depth: an uncaught exception anywhere in this polling loop
+    # would silently kill this daemon thread while tmas keeps running,
+    # orphaning the scan forever at "running" with no error and no way to
+    # cancel it (this happened for real: a UnicodeDecodeError from a strict
+    # text-mode file read — now fixed — took down the thread mid-scan). Any
+    # exception here now terminates tmas and marks the scan failed instead.
+    try:
+        # Read the PTY continuously, appending to the log file, until tmas exits.
+        while True:
+            try:
+                r, _, _ = select.select([master_fd], [], [], 1.0)
+                if master_fd in r:
+                    try:
+                        chunk = os.read(master_fd, 65536)
+                    except OSError:
+                        chunk = b""
+                    if chunk:
+                        logf.write(chunk); logf.flush()
+            except (OSError, ValueError):
+                pass
+
+            if proc.poll() is not None:
+                # Drain any trailing output.
+                while True:
+                    try:
+                        r, _, _ = select.select([master_fd], [], [], 0.2)
+                        if master_fd not in r:
+                            break
+                        chunk = os.read(master_fd, 65536)
+                        if not chunk:
+                            break
+                        logf.write(chunk); logf.flush()
+                    except OSError:
+                        break
+                break
+
+            _scrape_progress(scan_id, log_path)
+            with SCANS_LOCK:
+                if SCANS[scan_id].get("cancel_requested"):
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                    SCANS[scan_id]["status"] = "cancelled"
+                    SCANS[scan_id]["finished_at"] = _now()
+                    logf.close(); os.close(master_fd)
+                    return
+    except Exception as e:
         try:
-            r, _, _ = select.select([master_fd], [], [], 1.0)
-            if master_fd in r:
-                try:
-                    chunk = os.read(master_fd, 65536)
-                except OSError:
-                    chunk = b""
-                if chunk:
-                    logf.write(chunk); logf.flush()
-        except (OSError, ValueError):
+            proc.kill()
+        except OSError:
             pass
-
-        if proc.poll() is not None:
-            # Drain any trailing output.
-            while True:
-                try:
-                    r, _, _ = select.select([master_fd], [], [], 0.2)
-                    if master_fd not in r:
-                        break
-                    chunk = os.read(master_fd, 65536)
-                    if not chunk:
-                        break
-                    logf.write(chunk); logf.flush()
-                except OSError:
-                    break
-            break
-
-        _scrape_progress(scan_id, log_path)
+        try:
+            logf.close()
+        except OSError:
+            pass
+        try:
+            os.close(master_fd)
+        except OSError:
+            pass
         with SCANS_LOCK:
-            if SCANS[scan_id].get("cancel_requested"):
-                proc.terminate()
-                try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                SCANS[scan_id]["status"] = "cancelled"
-                SCANS[scan_id]["finished_at"] = _now()
-                logf.close(); os.close(master_fd)
-                return
+            SCANS[scan_id]["status"] = "failed"
+            SCANS[scan_id]["error"] = f"Internal error while monitoring the scan: {e}"
+            SCANS[scan_id]["finished_at"] = _now()
+        return
 
     logf.close()
     try:
@@ -520,11 +545,20 @@ def _clean_error(log_path: str) -> str:
 
 
 def _scrape_progress(scan_id: str, log_path: str) -> None:
+    # Read as bytes and decode defensively: the log is written live while
+    # tmas's PTY output is mid-flight, so a multi-byte UTF-8 sequence (its
+    # progress UI uses box-drawing characters) can be truncated right at
+    # EOF. A strict text-mode read would raise UnicodeDecodeError here —
+    # which is NOT an OSError, so it would silently kill the polling thread
+    # that's supposed to catch it, orphaning the tmas process and freezing
+    # the scan forever (confirmed root cause of a scan that never progressed
+    # or responded to cancellation).
     try:
-        with open(log_path) as f:
-            txt = f.read()
+        with open(log_path, "rb") as f:
+            raw = f.read()
     except OSError:
         return
+    txt = raw.decode("utf-8", errors="replace")
     txt = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", txt)
     m = re.search(r"Total attack attempts:\s*(\d+)", txt)
     if m:
