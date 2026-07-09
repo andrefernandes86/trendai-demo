@@ -176,20 +176,63 @@ def _yaml_escape(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def build_config_yaml(scan_name, model, temperature, objective_ids, technique_ids, modifier_ids) -> str:
+def build_target_block(cfg: dict) -> list[str]:
+    """Build the tmas `target:` YAML block for the chosen target type.
+
+    cfg keys: targetType ('ollama'|'openai'|'custom'), scanName, and per-type
+    fields. Schemas were captured/validated against the real tmas CLI:
+      - ollama/openai -> target.openai.{model,temperature}
+      - custom        -> target.custom.{method,headers,request.prompt.path,response.path}
+    """
+    ttype = cfg.get("targetType", "ollama")
+    name = cfg.get("scanName") or "webscan"
+    lines = ["target:"]
+
+    if ttype == "custom":
+        endpoint = cfg["endpointUrl"]
+        prompt_path = cfg.get("customPromptPath") or "messages[0].content"
+        resp_path = cfg.get("customResponsePath") or "choices[0].message.content"
+        lines += [
+            f"  endpoint: {endpoint}",
+            "  api_key_env: TARGET_API_KEY",
+            "  custom:",
+            "    method: POST",
+            "    headers:",
+            "      Content-Type: application/json",
+            "    request:",
+            "      prompt:",
+            f'        path: "{_yaml_escape(prompt_path)}"',
+            "    response:",
+            f'      path: "{_yaml_escape(resp_path)}"',
+            f'  name: "{_yaml_escape(name)}"',
+        ]
+    else:  # ollama (local) or openai (external) — both use the OpenAI provider block
+        if ttype == "openai":
+            endpoint = cfg["endpointUrl"]
+            model = cfg["openaiModel"]
+        else:
+            endpoint = TARGET_ENDPOINT
+            model = cfg["model"]
+        lines += [
+            f"  endpoint: {endpoint}",
+            "  api_key_env: TARGET_API_KEY",
+            "  openai:",
+            f"    model: {model}",
+            f"    temperature: {float(cfg.get('temperature', 0.6))}",
+            f'  name: "{_yaml_escape(name)}"',
+        ]
+    return lines
+
+
+def build_config_yaml(cfg: dict, objective_ids, technique_ids, modifier_ids) -> str:
     tech_names = [TECH_BY_ID[t]["name"] for t in technique_ids if t in TECH_BY_ID] or ["None"]
     mod_names = [MOD_BY_ID[m]["name"] for m in modifier_ids if m in MOD_BY_ID] or ["None"]
+    scan_name = cfg.get("scanName") or "TMAS Web Tool Scan"
     lines = [
         "version: 2.9.0",
-        f'name: "{_yaml_escape(scan_name or "TMAS Web Tool Scan")}"',
+        f'name: "{_yaml_escape(scan_name)}"',
         'description: "Created by the TrendAI Vision One AI Scanner web tool."',
-        "target:",
-        f"  endpoint: {TARGET_ENDPOINT}",
-        "  api_key_env: TARGET_API_KEY",
-        "  openai:",
-        f"    model: {model}",
-        f"    temperature: {float(temperature)}",
-        f'  name: "{_yaml_escape(scan_name or "webscan")}"',
+        *build_target_block(cfg),
         "settings:",
         f"  concurrency: {CONCURRENCY}",
         # Retry transient target failures — the bundled Ollama is CPU-only, so
@@ -243,24 +286,27 @@ def warm_up_model(model: str) -> None:
         pass  # best-effort; tmas will surface a clear error if the model is truly unreachable
 
 
-def run_scan(scan_id: str, config_yaml: str, api_key: str) -> None:
+def run_scan(scan_id: str, config_yaml: str, api_key: str, target_api_key: str) -> None:
     cfg_path = os.path.join(SCAN_WORKDIR, f"{scan_id}.yaml")
     out_path = os.path.join(SCAN_WORKDIR, f"{scan_id}.json")
     log_path = os.path.join(SCAN_WORKDIR, f"{scan_id}.log")
     with open(cfg_path, "w") as f:
         f.write(config_yaml)
 
-    # Warm the target model so tmas's target validation doesn't time out on a
-    # cold load. Marked as a distinct phase so the UI can explain the wait.
-    with SCANS_LOCK:
-        SCANS[scan_id]["phase"] = "warming"
-    warm_up_model(SCANS[scan_id]["model"])
+    # Warm the LOCAL Ollama model so tmas's target validation doesn't time out
+    # on a cold load. Only applies to the local target — external endpoints
+    # manage their own readiness.
+    warm_model = SCANS[scan_id].get("warm_model")
+    if warm_model:
+        with SCANS_LOCK:
+            SCANS[scan_id]["phase"] = "warming"
+        warm_up_model(warm_model)
     with SCANS_LOCK:
         SCANS[scan_id]["phase"] = "scanning"
 
     env = dict(os.environ)
     env["TMAS_API_KEY"] = api_key
-    env["TARGET_API_KEY"] = "ollama-local-no-auth"
+    env["TARGET_API_KEY"] = target_api_key or "ollama-local-no-auth"
     # A real terminal type so tmas renders its live progress UI (it suppresses
     # the animated progress when it detects a non-TTY / dumb terminal).
     env["TERM"] = "xterm-256color"
@@ -546,12 +592,43 @@ async def api_start_scan(body: dict):
     if active:
         raise HTTPException(409, "A scan is already running. Wait for it to finish or cancel it before starting another.")
 
-    model = str(body.get("model", "")).strip()
-    if not model:
-        raise HTTPException(400, "model is required")
-    available = {m["name"] for m in ollama_list_models()}
-    if model not in available:
-        raise HTTPException(400, f"Model '{model}' is not available on this Ollama instance.")
+    target_type = str(body.get("targetType", "ollama")).strip() or "ollama"
+    try:
+        temperature = max(0.0, min(float(body.get("temperature", 0.6)), 1.5))
+    except (TypeError, ValueError):
+        temperature = 0.6
+
+    cfg = {
+        "targetType": target_type,
+        "scanName": str(body.get("scanName", "")).strip() or "webscan",
+        "temperature": temperature,
+        "endpointUrl": str(body.get("endpointUrl", "")).strip(),
+        "openaiModel": str(body.get("openaiModel", "")).strip(),
+        "customPromptPath": str(body.get("customPromptPath", "")).strip(),
+        "customResponsePath": str(body.get("customResponsePath", "")).strip(),
+        "model": str(body.get("model", "")).strip(),
+    }
+    target_api_key = str(body.get("targetApiKey", "")).strip()
+
+    # Per-target validation
+    display_model = ""
+    if target_type == "ollama":
+        if not cfg["model"]:
+            raise HTTPException(400, "Select a local Ollama model.")
+        available = {m["name"] for m in ollama_list_models()}
+        if cfg["model"] not in available:
+            raise HTTPException(400, f"Model '{cfg['model']}' is not available on this Ollama instance.")
+        display_model = cfg["model"]
+    elif target_type == "openai":
+        if not cfg["endpointUrl"] or not cfg["openaiModel"]:
+            raise HTTPException(400, "OpenAI-compliant target needs an endpoint URL and a model ID.")
+        display_model = f"{cfg['openaiModel']} @ {cfg['endpointUrl']}"
+    elif target_type == "custom":
+        if not cfg["endpointUrl"]:
+            raise HTTPException(400, "Custom AI application target needs an endpoint URL.")
+        display_model = f"custom app @ {cfg['endpointUrl']}"
+    else:
+        raise HTTPException(400, f"Unsupported target type '{target_type}'.")
 
     objective_ids = body.get("objectiveIds") or [o["id"] for o in OBJECTIVES]
     objective_ids = [o for o in objective_ids if o in OBJ_BY_ID]
@@ -559,19 +636,16 @@ async def api_start_scan(body: dict):
         raise HTTPException(400, "Select at least one attack objective.")
     technique_ids = body.get("techniqueIds") or ["none"]
     modifier_ids = body.get("modifierIds") or ["none"]
-    scan_name = str(body.get("scanName", "")).strip() or "webscan"
-    try:
-        temperature = max(0.0, min(float(body.get("temperature", 0.6)), 1.5))
-    except (TypeError, ValueError):
-        temperature = 0.6
 
-    config_yaml = build_config_yaml(scan_name, model, temperature, objective_ids, technique_ids, modifier_ids)
+    config_yaml = build_config_yaml(cfg, objective_ids, technique_ids, modifier_ids)
 
     scan_id = uuid.uuid4().hex[:12]
     scan = {
         "id": scan_id,
-        "model": model,
-        "scan_name": scan_name,
+        "model": display_model,
+        "scan_name": cfg["scanName"],
+        "target_type": target_type,
+        "warm_model": cfg["model"] if target_type == "ollama" else "",
         "status": "running",
         "phase": "starting",
         "cancel_requested": False,
@@ -587,7 +661,9 @@ async def api_start_scan(body: dict):
         SCANS[scan_id] = scan
 
     api_key = SETTINGS["api_key"]
-    threading.Thread(target=run_scan, args=(scan_id, config_yaml, api_key), daemon=True).start()
+    # External targets carry their own key; local Ollama ignores auth.
+    tgt_key = target_api_key or "ollama-local-no-auth"
+    threading.Thread(target=run_scan, args=(scan_id, config_yaml, api_key, tgt_key), daemon=True).start()
     return {"scanId": scan_id}
 
 

@@ -318,9 +318,16 @@
       apiKeyInput: '',        // only holds a NEW key being typed; never pre-filled from the server
       changingKey: false,     // true once the user clicks "Use a different key"
       region: 'us-east-1',
+      targetType: 'ollama',   // 'ollama' | 'openai' | 'custom'
       scanName: '',
       model: '',
       temperature: 0.6,
+      // External target fields (used when targetType !== 'ollama')
+      endpointUrl: '',
+      targetApiKey: '',       // the target endpoint's own key (not the Vision One key)
+      openaiModel: '',        // model id for an OpenAI-compliant endpoint
+      customPromptPath: 'messages[0].content',        // custom app: request JSON key
+      customResponsePath: 'choices[0].message.content', // custom app: response JSON key
       selectedObjectives: new Set(),
       selectedTechniques: new Set(['none']),
       selectedModifiers: new Set(['none']),
@@ -446,88 +453,108 @@
       }
 
       if (name === 'target') {
+        const opt = (type, title, desc) => `
+          <label class="optrow ${wizard.targetType === type ? 'selected' : ''}" data-ttype="${type}">
+            <span class="marker">${wizard.targetType === type ? '&#9679;' : '&#9675;'}</span>
+            <div><div class="title">${title}</div><div class="desc">${desc}</div></div>
+          </label>`;
+        const disabled = (title, desc) => `
+          <label class="optrow disabled">
+            <span class="marker">&#9675;</span>
+            <div><div class="title">${title}</div><div class="desc">${desc}</div></div>
+          </label>`;
         panel.innerHTML = stepHeader(2, 'Select the AI Target to scan') + `
           <p class="sub">$ Choose which kind of AI target this scan group will test.</p>
           <div class="optlist">
-            <label class="optrow selected">
-              <span class="marker">&#9679;</span>
-              <div><div class="title">Local Ollama Model</div>
-                <div class="desc">A model already pulled into this host's bundled Ollama instance. Fully functional in this demo.</div>
-              </div>
-            </label>
-            <label class="optrow disabled">
-              <span class="marker">&#9675;</span>
-              <div><div class="title">Model Endpoint (OpenAI-compliant)</div>
-                <div class="desc">Endpoint URL + API key + model ID for any endpoint implementing the OpenAI Chat Completions API. Not wired up in this demo — UI only.</div>
-              </div>
-            </label>
-            <label class="optrow disabled">
-              <span class="marker">&#9675;</span>
-              <div><div class="title">AI Application Endpoint (Custom)</div>
-                <div class="desc">An arbitrary HTTP endpoint with configurable request/response schemas. Not wired up in this demo — UI only.</div>
-              </div>
-            </label>
-            <label class="optrow disabled">
-              <span class="marker">&#9675;</span>
-              <div><div class="title">AWS Bedrock Foundation Model</div>
-                <div class="desc">Authenticates via the AWS credential chain — no endpoint or API key needed. Not wired up in this demo — UI only.</div>
-              </div>
-            </label>
-            <label class="optrow disabled">
-              <span class="marker">&#9675;</span>
-              <div><div class="title">Azure OpenAI / AI Foundry Endpoint</div>
-                <div class="desc">Azure resource base URL + deployment name, api_key or Entra ID auth. Not wired up in this demo — UI only.</div>
-              </div>
-            </label>
-            <label class="optrow disabled">
-              <span class="marker">&#9675;</span>
-              <div><div class="title">Google Vertex AI (Gemini)</div>
-                <div class="desc">Authenticates via Google Application Default Credentials. Not wired up in this demo — UI only.</div>
-              </div>
-            </label>
+            ${opt('ollama', 'Local Ollama Model', "A model already pulled into this host's bundled Ollama instance — runs on this box, no external calls.")}
+            ${opt('openai', 'Model Endpoint (OpenAI-compliant)', 'Any external endpoint implementing the OpenAI Chat Completions API (OpenAI, Azure-compat, vLLM, another Ollama host, etc.). You provide the URL, API key, and model ID.')}
+            ${opt('custom', 'AI Application Endpoint (Custom)', 'Any external HTTP chatbot/app API. You provide the URL, optional key, and the JSON paths for the prompt (request) and the answer (response).')}
+            ${disabled('AWS Bedrock Foundation Model', 'Authenticates via the AWS credential chain. Not wired up in this demo — UI only.')}
+            ${disabled('Azure OpenAI / AI Foundry Endpoint', 'Azure resource base URL + deployment name, api_key or Entra ID auth. Not wired up in this demo — UI only.')}
+            ${disabled('Google Vertex AI (Gemini)', 'Authenticates via Google Application Default Credentials. Not wired up in this demo — UI only.')}
           </div>
         `;
+        setTimeout(() => {
+          panel.querySelectorAll('[data-ttype]').forEach(el => {
+            el.addEventListener('click', () => { wizard.targetType = el.dataset.ttype; renderStep(); });
+          });
+        }, 0);
       }
 
       if (name === 'configure') {
-        const modelOpts = MODELS.length
-          ? MODELS.map(m => `<option value="${m.name}" ${m.name === wizard.model ? 'selected' : ''}>${m.name} — ${m.parameter_size} (${m.quantization})</option>`).join('')
-          : '<option value="">No models found on this Ollama instance</option>';
-        panel.innerHTML = stepHeader(3, 'Configure the target model') + `
-          <p class="sub">$ Name this scan group and pick the target model (credentials are implicit — this Ollama instance is local, unauthenticated).</p>
+        const nameField = `
           <label class="field-label" for="scanNameInput">Scan Group Name</label>
-          <input type="text" id="scanNameInput" placeholder="e.g. demo-run-1" value="${wizard.scanName}" />
-          <label class="field-label" for="modelSelect">Target Model</label>
-          <div style="display:flex;gap:8px;">
-            <select id="modelSelect" style="flex:1;">${modelOpts}</select>
-            <button type="button" class="btn small secondary" id="refreshModelsBtn">↻ Refresh</button>
-          </div>
-          ${!MODELS.length ? '<div class="field-hint">Ollama may still be pulling its models on a fresh deploy — this can take a minute or two. Click Refresh to check again.</div>' : '<div class="field-hint">⚡ This host runs models on CPU. The smallest model is pre-selected because larger ones (3B+) respond too slowly and tmas times out mid-attack. Stick with the smallest for reliable scans.</div>'}
+          <input type="text" id="scanNameInput" placeholder="e.g. demo-run-1" value="${wizard.scanName}" />`;
+        const tempField = `
           <label class="field-label">Temperature</label>
           <div class="range-row">
             <input type="range" id="tempRange" min="0" max="1.2" step="0.1" value="${wizard.temperature}" />
             <span class="range-val" id="tempVal">${wizard.temperature}</span>
-          </div>
+          </div>`;
+
+        let body;
+        if (wizard.targetType === 'ollama') {
+          const modelOpts = MODELS.length
+            ? MODELS.map(m => `<option value="${m.name}" ${m.name === wizard.model ? 'selected' : ''}>${m.name} — ${m.parameter_size} (${m.quantization})</option>`).join('')
+            : '<option value="">No models found on this Ollama instance</option>';
+          body = `
+            <p class="sub">$ Local Ollama target — pick a model already pulled on this host (unauthenticated, local).</p>
+            ${nameField}
+            <label class="field-label" for="modelSelect">Target Model</label>
+            <div style="display:flex;gap:8px;">
+              <select id="modelSelect" style="flex:1;">${modelOpts}</select>
+              <button type="button" class="btn small secondary" id="refreshModelsBtn">↻ Refresh</button>
+            </div>
+            ${!MODELS.length ? '<div class="field-hint">Ollama may still be pulling its models on a fresh deploy — click Refresh.</div>' : '<div class="field-hint">⚡ CPU host: the smallest model is pre-selected — larger ones (3B+) respond too slowly and tmas times out mid-attack.</div>'}
+            ${tempField}`;
+        } else if (wizard.targetType === 'openai') {
+          body = `
+            <p class="sub">$ External OpenAI-compliant endpoint — the scanner sends real Chat Completions requests to this URL using your key.</p>
+            ${nameField}
+            <label class="field-label" for="endpointUrl">Endpoint URL (OpenAI v1 base)</label>
+            <input type="text" id="endpointUrl" placeholder="https://api.openai.com/v1" value="${wizard.endpointUrl}" />
+            <label class="field-label" for="openaiModel">Model ID</label>
+            <input type="text" id="openaiModel" placeholder="gpt-4o-mini" value="${wizard.openaiModel}" />
+            <label class="field-label" for="targetApiKey">Target API Key</label>
+            <input type="password" id="targetApiKey" placeholder="sk-… (key for the target endpoint, not Vision One)" autocomplete="off" value="${wizard.targetApiKey}" />
+            ${tempField}`;
+        } else { // custom
+          body = `
+            <p class="sub">$ External custom AI application — the scanner embeds each attack prompt into your request JSON and reads the answer from your response JSON.</p>
+            ${nameField}
+            <label class="field-label" for="endpointUrl">AI Application Endpoint URL</label>
+            <input type="text" id="endpointUrl" placeholder="https://your-app.example.com/api/chat" value="${wizard.endpointUrl}" />
+            <label class="field-label" for="targetApiKey">API Key <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+            <input type="password" id="targetApiKey" placeholder="leave blank if no key is required" autocomplete="off" value="${wizard.targetApiKey}" />
+            <label class="field-label" for="customPromptPath">Request body JSON key for the prompt</label>
+            <input type="text" id="customPromptPath" placeholder="messages[0].content" value="${wizard.customPromptPath}" />
+            <div class="field-hint">Where to embed the attack prompt in the request body (e.g. <code>messages[0].content</code> or <code>input</code>).</div>
+            <label class="field-label" for="customResponsePath">Response body JSON key for the answer</label>
+            <input type="text" id="customResponsePath" placeholder="choices[0].message.content" value="${wizard.customResponsePath}" />
+            <div class="field-hint">Where to read the model's reply in the response body (e.g. <code>choices[0].message.content</code> or <code>output</code>).</div>`;
+        }
+
+        panel.innerHTML = stepHeader(3, 'Configure the target') + body + `
           <div class="load-config-row" style="margin-top:20px;">
             <select id="configSelect"><option value="">— load a saved configuration —</option>
               ${Object.keys(SAVED_CONFIGS).map(n => `<option value="${n}">${n}</option>`).join('')}
             </select>
             <button class="btn small secondary" id="loadConfigBtn">Load</button>
-          </div>
-        `;
+          </div>`;
         setTimeout(() => {
-          document.getElementById('scanNameInput').addEventListener('input', e => { wizard.scanName = e.target.value; });
-          document.getElementById('modelSelect').addEventListener('change', e => { wizard.model = e.target.value; });
-          document.getElementById('tempRange').addEventListener('input', e => {
-            wizard.temperature = Number(e.target.value);
-            document.getElementById('tempVal').textContent = e.target.value;
-          });
-          document.getElementById('refreshModelsBtn').addEventListener('click', async (e) => {
-            e.target.textContent = '…';
-            e.target.disabled = true;
-            await loadModels();
-            renderStep();
-          });
+          const bind = (id, prop) => { const el = document.getElementById(id); if (el) el.addEventListener('input', e => { wizard[prop] = e.target.value; }); };
+          bind('scanNameInput', 'scanName');
+          bind('endpointUrl', 'endpointUrl');
+          bind('openaiModel', 'openaiModel');
+          bind('targetApiKey', 'targetApiKey');
+          bind('customPromptPath', 'customPromptPath');
+          bind('customResponsePath', 'customResponsePath');
+          const ms = document.getElementById('modelSelect');
+          if (ms) ms.addEventListener('change', e => { wizard.model = e.target.value; });
+          const tr = document.getElementById('tempRange');
+          if (tr) tr.addEventListener('input', e => { wizard.temperature = Number(e.target.value); document.getElementById('tempVal').textContent = e.target.value; });
+          const rb = document.getElementById('refreshModelsBtn');
+          if (rb) rb.addEventListener('click', async (e) => { e.target.textContent = '…'; e.target.disabled = true; await loadModels(); renderStep(); });
           document.getElementById('loadConfigBtn').addEventListener('click', () => {
             const sel = document.getElementById('configSelect').value;
             const cfg = SAVED_CONFIGS[sel];
@@ -659,10 +686,9 @@
         panel.innerHTML = stepHeader(7, 'Pre-Scan Summary') + `
           <p class="sub">$ Confirm the configuration below, then start the real scan. This runs the actual <code>tmas aiscan llm</code> binary against the model and the Vision One judge — it can take several minutes and uses real Vision One quota.</p>
           <table class="summary-table">
-            <tr><td>AI Target</td><td>Local Ollama Model</td></tr>
+            <tr><td>AI Target</td><td>${targetSummary()}</td></tr>
             <tr><td>Vision One API Key</td><td>${SETTINGS.hasApiKey || wizard.apiKeyInput ? 'Provided' : '(none)'}</td></tr>
             <tr><td>Scan Group Name</td><td>${wizard.scanName || '(unnamed)'}</td></tr>
-            <tr><td>Target Model</td><td>${wizard.model || '(none selected)'}</td></tr>
           </table>
           <div id="preScanTableWrap" style="margin-top:16px;">Loading summary…</div>
           <div class="save-config-row">
@@ -741,15 +767,31 @@
       if (set.size === 0) set.add('none');
     }
 
+    function targetSummary() {
+      if (wizard.targetType === 'openai') return `OpenAI-compliant endpoint — ${wizard.openaiModel || '(no model)'} @ ${wizard.endpointUrl || '(no URL)'}`;
+      if (wizard.targetType === 'custom') return `Custom AI application @ ${wizard.endpointUrl || '(no URL)'}`;
+      return `Local Ollama Model — ${wizard.model || '(none selected)'}`;
+    }
+
     function validateStep() {
       const name = STEPS[wizard.step];
       if (name === 'apikey' && !SETTINGS.hasApiKey && !wizard.apiKeyInput.trim()) {
         alert('Enter a Vision One API key to continue — the real CLI requires TMAS_API_KEY before it will run.');
         return false;
       }
-      if (name === 'configure' && !wizard.model) {
-        alert('Select a target model first — check that Ollama has at least one model pulled.');
-        return false;
+      if (name === 'configure') {
+        if (wizard.targetType === 'ollama' && !wizard.model) {
+          alert('Select a local Ollama model first — check that Ollama has at least one model pulled.');
+          return false;
+        }
+        if (wizard.targetType === 'openai' && (!wizard.endpointUrl.trim() || !wizard.openaiModel.trim())) {
+          alert('Enter the endpoint URL and model ID for the OpenAI-compliant target.');
+          return false;
+        }
+        if (wizard.targetType === 'custom' && !wizard.endpointUrl.trim()) {
+          alert('Enter the endpoint URL for the custom AI application target.');
+          return false;
+        }
       }
       if (name === 'objectives' && wizard.selectedObjectives.size === 0) {
         alert('Select at least one attack objective.');
@@ -944,7 +986,13 @@
       const res = await fetch('/api/scan', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          targetType: wizard.targetType,
           model: wizard.model,
+          endpointUrl: wizard.endpointUrl,
+          openaiModel: wizard.openaiModel,
+          targetApiKey: wizard.targetApiKey,
+          customPromptPath: wizard.customPromptPath,
+          customResponsePath: wizard.customResponsePath,
           objectiveIds: Array.from(wizard.selectedObjectives),
           techniqueIds: Array.from(wizard.selectedTechniques),
           modifierIds: Array.from(wizard.selectedModifiers),
