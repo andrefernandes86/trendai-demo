@@ -513,10 +513,15 @@
             ${nameField}
             <label class="field-label" for="endpointUrl">Endpoint URL (OpenAI v1 base)</label>
             <input type="text" id="endpointUrl" placeholder="https://api.openai.com/v1" value="${wizard.endpointUrl}" />
-            <label class="field-label" for="openaiModel">Model ID</label>
-            <input type="text" id="openaiModel" placeholder="gpt-4o-mini" value="${wizard.openaiModel}" />
             <label class="field-label" for="targetApiKey">Target API Key</label>
             <input type="password" id="targetApiKey" placeholder="sk-… (key for the target endpoint, not Vision One)" autocomplete="off" value="${wizard.targetApiKey}" />
+            <label class="field-label" for="openaiModel">Model ID</label>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="openaiModel" placeholder="gpt-4o-mini" value="${wizard.openaiModel}" style="flex:1;" />
+              <button type="button" class="btn small secondary" id="listModelsBtn">↻ List models</button>
+            </div>
+            <div id="targetModelsWrap"></div>
+            <div class="field-hint">Enter the endpoint URL (and key, if needed) above, then click <b>List models</b> to pick from what the endpoint exposes — or just type the model ID.</div>
             ${tempField}`;
         } else { // custom
           body = `
@@ -555,6 +560,8 @@
           if (tr) tr.addEventListener('input', e => { wizard.temperature = Number(e.target.value); document.getElementById('tempVal').textContent = e.target.value; });
           const rb = document.getElementById('refreshModelsBtn');
           if (rb) rb.addEventListener('click', async (e) => { e.target.textContent = '…'; e.target.disabled = true; await loadModels(); renderStep(); });
+          const lmb = document.getElementById('listModelsBtn');
+          if (lmb) lmb.addEventListener('click', () => listTargetModels());
           document.getElementById('loadConfigBtn').addEventListener('click', () => {
             const sel = document.getElementById('configSelect').value;
             const cfg = SAVED_CONFIGS[sel];
@@ -765,6 +772,42 @@
         if (checked) set.add(id); else set.delete(id);
       }
       if (set.size === 0) set.add('none');
+    }
+
+    async function listTargetModels() {
+      const wrap = document.getElementById('targetModelsWrap');
+      const btn = document.getElementById('listModelsBtn');
+      if (!wrap) return;
+      if (!wizard.endpointUrl.trim()) { wrap.innerHTML = '<div class="step-error">Enter the endpoint URL first.</div>'; return; }
+      if (btn) { btn.disabled = true; btn.textContent = '…'; }
+      wrap.innerHTML = '<div class="field-hint">Querying the endpoint for available models…</div>';
+      try {
+        const res = await fetch('/api/target/models', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpointUrl: wizard.endpointUrl.trim(), apiKey: wizard.targetApiKey.trim() }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'request failed');
+        const models = data.models || [];
+        if (!models.length) { wrap.innerHTML = '<div class="field-hint">The endpoint returned no models — type the model ID manually.</div>'; return; }
+        wrap.innerHTML = `
+          <label class="field-label" for="targetModelSelect">Models found on the endpoint (${models.length})</label>
+          <select id="targetModelSelect">
+            <option value="">— select a model —</option>
+            ${models.map(m => `<option value="${m}" ${m === wizard.openaiModel ? 'selected' : ''}>${m}</option>`).join('')}
+          </select>`;
+        const sel = document.getElementById('targetModelSelect');
+        sel.addEventListener('change', e => {
+          if (!e.target.value) return;
+          wizard.openaiModel = e.target.value;
+          const inp = document.getElementById('openaiModel');
+          if (inp) inp.value = e.target.value;
+        });
+      } catch (e) {
+        wrap.innerHTML = `<div class="step-error">Couldn't list models: ${(e && e.message) || e}</div>`;
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '↻ List models'; }
+      }
     }
 
     function targetSummary() {

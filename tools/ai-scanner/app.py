@@ -551,6 +551,34 @@ def excerpt(text: str, limit: int) -> str:
 
 # --- API ----------------------------------------------------------------
 
+@app.post("/api/target/models")
+async def api_target_models(body: dict):
+    """List models from an external OpenAI-compatible endpoint (GET /models),
+    so the UI can offer a pick-list instead of making the user type a model id."""
+    url = str(body.get("endpointUrl", "")).strip().rstrip("/")
+    key = str(body.get("apiKey", "")).strip()
+    if not url:
+        raise HTTPException(400, "An endpoint URL is required to list models.")
+    models_url = url + "/models"
+    req = urllib.request.Request(models_url, headers={"Accept": "application/json"})
+    if key:
+        req.add_header("Authorization", "Bearer " + key)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.load(resp)
+    except urllib.error.HTTPError as e:  # subclasses URLError — catch first
+        raise HTTPException(502, f"The endpoint returned HTTP {e.code} for {models_url}. Check the URL and API key.")
+    except (urllib.error.URLError, OSError, json.JSONDecodeError) as e:
+        raise HTTPException(502, f"Could not reach {models_url}: {e}")
+    items = data.get("data") or data.get("models") or (data if isinstance(data, list) else [])
+    ids = []
+    for m in items:
+        mid = (m.get("id") or m.get("name")) if isinstance(m, dict) else str(m)
+        if mid:
+            ids.append(mid)
+    return {"models": sorted(set(ids))}
+
+
 @app.get("/api/models")
 def api_models():
     return {"models": ollama_list_models()}
