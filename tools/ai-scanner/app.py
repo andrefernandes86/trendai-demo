@@ -176,6 +176,16 @@ def _yaml_escape(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def normalize_openai_base(url: str) -> str:
+    """Normalize an OpenAI-style base URL the user may have pasted loosely:
+    trim whitespace/trailing slashes and drop a trailing '/models' if they
+    pasted the models URL by mistake. Returns the /v1 base (no trailing slash)."""
+    url = (url or "").strip().rstrip("/")
+    if url.endswith("/models"):
+        url = url[: -len("/models")]
+    return url.rstrip("/")
+
+
 def build_target_block(cfg: dict) -> list[str]:
     """Build the tmas `target:` YAML block for the chosen target type.
 
@@ -208,7 +218,7 @@ def build_target_block(cfg: dict) -> list[str]:
         ]
     else:  # ollama (local) or openai (external) — both use the OpenAI provider block
         if ttype == "openai":
-            endpoint = cfg["endpointUrl"]
+            endpoint = normalize_openai_base(cfg["endpointUrl"]) + "/"
             model = cfg["openaiModel"]
         else:
             endpoint = TARGET_ENDPOINT
@@ -555,7 +565,7 @@ def excerpt(text: str, limit: int) -> str:
 async def api_target_models(body: dict):
     """List models from an external OpenAI-compatible endpoint (GET /models),
     so the UI can offer a pick-list instead of making the user type a model id."""
-    url = str(body.get("endpointUrl", "")).strip().rstrip("/")
+    url = normalize_openai_base(str(body.get("endpointUrl", "")))
     key = str(body.get("apiKey", "")).strip()
     if not url:
         raise HTTPException(400, "An endpoint URL is required to list models.")

@@ -323,7 +323,7 @@
       model: '',
       temperature: 0.6,
       // External target fields (used when targetType !== 'ollama')
-      endpointUrl: '',
+      endpointUrl: 'http://192.168.1.100:8000/v1',  // preset: DGX vLLM (editable)
       targetApiKey: '',       // the target endpoint's own key (not the Vision One key)
       openaiModel: '',        // model id for an OpenAI-compliant endpoint
       customPromptPath: 'messages[0].content',        // custom app: request JSON key
@@ -786,8 +786,16 @@
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ endpointUrl: wizard.endpointUrl.trim(), apiKey: wizard.targetApiKey.trim() }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'request failed');
+        // The response may not be JSON (e.g. a proxy timeout HTML page), so
+        // read text and parse defensively instead of blindly res.json().
+        const raw = await res.text();
+        let data = {};
+        try { data = JSON.parse(raw); } catch (_) { data = {}; }
+        if (!res.ok) {
+          throw new Error(data.detail || (res.status === 504 || res.status === 502
+            ? 'the endpoint did not respond in time — check it is reachable from this host'
+            : `HTTP ${res.status}`));
+        }
         const models = data.models || [];
         if (!models.length) { wrap.innerHTML = '<div class="field-hint">The endpoint returned no models — type the model ID manually.</div>'; return; }
         wrap.innerHTML = `
