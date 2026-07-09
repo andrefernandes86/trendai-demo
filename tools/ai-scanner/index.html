@@ -329,6 +329,13 @@
     const STEPS = ['apikey', 'target', 'configure', 'objectives', 'techniques', 'modifiers', 'review'];
 
     // ---------------- Data loading ----------------
+    function paramBillions(m) {
+      // Parse "1.2B" / "3.8B" / "540M" into a comparable number of billions.
+      const s = (m.parameter_size || '').trim().toUpperCase();
+      const num = parseFloat(s);
+      if (isNaN(num)) return 999;
+      return s.includes('M') ? num / 1000 : num;
+    }
     async function loadModels() {
       try {
         const res = await fetch('/api/models');
@@ -337,6 +344,10 @@
       } catch (e) {
         MODELS = [];
       }
+      // Sort smallest-first and default to the smallest — on a CPU-only host the
+      // smallest model responds fast enough to stay under tmas's per-attack
+      // timeout; larger ones ("context deadline exceeded") do not.
+      MODELS.sort((a, b) => paramBillions(a) - paramBillions(b));
       if (MODELS.length && !wizard.model) wizard.model = MODELS[0].name;
     }
 
@@ -491,7 +502,7 @@
             <select id="modelSelect" style="flex:1;">${modelOpts}</select>
             <button type="button" class="btn small secondary" id="refreshModelsBtn">↻ Refresh</button>
           </div>
-          ${!MODELS.length ? '<div class="field-hint">Ollama may still be pulling its models on a fresh deploy — this can take a minute or two. Click Refresh to check again.</div>' : ''}
+          ${!MODELS.length ? '<div class="field-hint">Ollama may still be pulling its models on a fresh deploy — this can take a minute or two. Click Refresh to check again.</div>' : '<div class="field-hint">⚡ This host runs models on CPU. The smallest model is pre-selected because larger ones (3B+) respond too slowly and tmas times out mid-attack. Stick with the smallest for reliable scans.</div>'}
           <label class="field-label">Temperature</label>
           <div class="range-row">
             <input type="range" id="tempRange" min="0" max="1.2" step="0.1" value="${wizard.temperature}" />

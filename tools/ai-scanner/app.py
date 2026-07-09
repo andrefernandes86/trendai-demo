@@ -55,12 +55,13 @@ OLLAMA_BASE = "http://ollama:11434"
 TARGET_ENDPOINT = "http://ollama:11434/v1/"
 TMAS_BIN = "/usr/local/bin/tmas"
 SCAN_WORKDIR = "/tmp/aiscanner"
-# The bundled Ollama is CPU-only; a single gemma2:2b generation already uses
-# every core, so running many attacks concurrently just thrashes the box
-# (load average spiked to ~18 at concurrency 4, starving sshd and the other
-# containers). 2 keeps the host responsive while still overlapping the model
-# call of one attack with the judge call of another.
-CONCURRENCY = 2
+# The bundled Ollama is CPU-only. Concurrent generations share the same cores,
+# so each one runs slower — and tmas has a fixed (~60s) internal per-attack
+# timeout, so a slowed-down generation trips "context deadline exceeded".
+# Serializing attacks (1 at a time) gives each generation the full CPU, which
+# is the fastest per-response and the least likely to hit that deadline. It
+# also keeps the host responsive (concurrency 4 spiked it to load ~18).
+CONCURRENCY = 1
 
 os.makedirs(SCAN_WORKDIR, exist_ok=True)
 
