@@ -464,49 +464,120 @@ def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+_TOKEN_RE = re.compile(
+    r"\x1b\[([0-9;?]*)([A-Za-z])"       # CSI sequence: params + final letter
+    r"|\x1b\][^\x07]*(?:\x07|\x1b\\)"   # OSC sequence
+    r"|\x1b[=>()][A-Za-z0-9]?"          # misc short escapes (charset/keypad)
+    r"|\x1b"                            # stray lone ESC
+    r"|[\n\r\t\x08]"                    # line/col-affecting control chars
+    r"|[^\x1b\n\r\t\x08]+"              # runs of plain text
+)
+
+
+def _render_terminal_screen(raw: str) -> list[str]:
+    """Replay a byte stream through a minimal VT100/ANSI emulator to produce
+    the terminal's actual current screen contents.
+
+    tmas's progress UI redraws its status area in place using cursor-up +
+    erase-line sequences (not just '\\r'), so naive line-by-line text diffing
+    sees every redraw tick as a brand-new line and the panel fills up with
+    stacked "Elapsed time: 9s / 10s / 11s / ..." rows. Replaying cursor
+    movement and erase codes against a line buffer instead reproduces exactly
+    what a real terminal would be showing right now.
+    """
+    lines: list[str] = [""]
+    row, col = 0, 0
+
+    def ensure_row(r: int) -> None:
+        while len(lines) <= r:
+            lines.append("")
+
+    for m in _TOKEN_RE.finditer(raw):
+        text = m.group(0)
+        if text == "\n":
+            row += 1
+            col = 0
+            ensure_row(row)
+        elif text == "\r":
+            col = 0
+        elif text == "\t":
+            col = (col // 8 + 1) * 8
+        elif text == "\x08":
+            col = max(0, col - 1)
+        elif text[0] == "\x1b":
+            params, final = m.group(1), m.group(2)
+            if final is None:
+                continue  # OSC/misc escape — no cursor/text effect we track
+            nums = [int(p) for p in params.split(";") if p] if params else []
+            n = nums[0] if nums else 1
+            if final == "A":                       # cursor up
+                row = max(0, row - n)
+            elif final == "B":                      # cursor down
+                row += n
+                ensure_row(row)
+            elif final in ("C",):                   # cursor forward
+                col += n
+            elif final in ("D",):                   # cursor back
+                col = max(0, col - n)
+            elif final in ("H", "f"):                # cursor position
+                row = max(0, (nums[0] if len(nums) > 0 else 1) - 1)
+                col = max(0, (nums[1] if len(nums) > 1 else 1) - 1)
+                ensure_row(row)
+            elif final == "J":                       # erase in display
+                mode = nums[0] if nums else 0
+                if mode in (2, 3):
+                    lines = [""]
+                    row, col = 0, 0
+                elif mode == 0:
+                    ensure_row(row)
+                    lines[row] = lines[row][:col]
+                    lines = lines[: row + 1]
+                elif mode == 1:
+                    for r in range(row):
+                        lines[r] = ""
+                    ensure_row(row)
+                    lines[row] = " " * col + lines[row][col:]
+            elif final == "K":                       # erase in line
+                mode = nums[0] if nums else 0
+                ensure_row(row)
+                if mode == 0:
+                    lines[row] = lines[row][:col]
+                elif mode == 1:
+                    lines[row] = " " * col + lines[row][col:]
+                elif mode == 2:
+                    lines[row] = ""
+            # SGR ('m'), mode toggles, etc. have no effect on line contents.
+        else:
+            ensure_row(row)
+            line = lines[row]
+            if len(line) < col:
+                line = line + " " * (col - len(line))
+            lines[row] = line[:col] + text + line[col + len(text):]
+            col += len(text)
+
+    return [ln.rstrip() for ln in lines]
+
+
 def _clean_log_for_display(log_path: str, max_chars: int = 8000) -> str:
-    """Turn tmas's raw TUI stdout into readable plain text for the live panel:
-    strip ANSI escapes, apply carriage-return overwrites, and collapse the
-    repeated spinner/progress frames so the panel reads like a clean transcript."""
+    """Turn tmas's raw TUI stdout into the plain text a real terminal would
+    currently be showing, by replaying it through a minimal ANSI emulator."""
     try:
         # Only read the tail — a PTY-driven progress UI can write megabytes of
-        # redraw frames over a long scan; we only need the most recent state.
+        # redraw frames over a long scan; we only need enough of it that any
+        # cursor-up references stay within the replayed window.
         with open(log_path, "rb") as fb:
             try:
-                fb.seek(-262144, os.SEEK_END)
+                fb.seek(-1_000_000, os.SEEK_END)
             except OSError:
                 fb.seek(0)
             raw = fb.read().decode("utf-8", errors="replace")
     except OSError:
         return ""
-    # Strip ANSI CSI / OSC / charset escapes.
-    txt = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", raw)
-    txt = re.sub(r"\x1b\][^\x07]*\x07", "", txt)
-    txt = re.sub(r"\x1b[=>()][A-Za-z0-9]?", "", txt)
-    txt = txt.replace("\x1b", "")
-    out = []
-    for line in txt.split("\n"):
-        if "\r" in line:            # terminal overwrite: keep the last non-empty state
-            segs = [s for s in line.split("\r") if s.strip()]
-            line = segs[-1] if segs else ""
-        out.append(line.rstrip())
-    def norm(s: str) -> str:
-        # Digit-agnostic key so an in-place status line (e.g. "Elapsed time: 7s"
-        # vs "8s", "Successful attacks: 0/2" vs "1/2") is treated as the same
-        # line and only its latest value is kept — instead of stacking a tick
-        # per second.
-        return re.sub(r"\d+", "#", s).strip()
-
-    cleaned = []
-    for ln in out:
+    lines = _render_terminal_screen(raw)
+    # Collapse blank-line runs left over from cleared regions.
+    cleaned: list[str] = []
+    for ln in lines:
         if ln == "" and (not cleaned or cleaned[-1] == ""):
-            continue            # collapse blank runs
-        if cleaned and cleaned[-1] == ln:
-            continue            # drop consecutive identical frames
-        # If this line is the same status as the previous kept line with only
-        # numbers changed, replace it in place rather than appending.
-        if cleaned and ln.strip() and norm(ln) == norm(cleaned[-1]) and any(c.isdigit() for c in ln):
-            cleaned[-1] = ln
             continue
         cleaned.append(ln)
     return "\n".join(cleaned).strip()[-max_chars:]
