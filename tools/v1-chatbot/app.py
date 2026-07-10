@@ -58,11 +58,15 @@ LLM_SETTINGS: dict = {"targetType": "ollama", "endpointUrl": "", "apiKey": "", "
 
 
 def mask_key(key: str) -> str:
+    # Fixed-width mask regardless of key length — real Vision One API keys
+    # are long JWTs, so filling with one '•' per character (the old
+    # behavior) produced a mask dozens of characters long that overflowed
+    # and wrapped badly in the UI.
     if not key:
         return ""
     if len(key) <= 8:
         return "•" * len(key)
-    return key[:4] + "•" * (len(key) - 8) + key[-4:]
+    return key[:4] + "••••••••" + key[-4:]
 
 
 @app.get("/api/settings/v1")

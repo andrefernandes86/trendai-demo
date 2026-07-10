@@ -31,7 +31,7 @@
     min-height: 100vh;
   }
   a { color: inherit; }
-  code, pre { font-family: ui-monospace, Menlo, monospace; }
+  code, pre { font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
 
   header.topbar {
     display: flex; align-items: center; justify-content: space-between;
@@ -307,9 +307,16 @@ async function loadV1Settings() {
   document.getElementById('v1Region').value = d.region;
   document.getElementById('v1Readonly').checked = !d.readonly;
   onReadonlyToggle();
-  document.getElementById('v1Status').textContent = d.hasApiKey
-    ? `Connected · key ${d.maskedKey} · region ${d.region.toUpperCase()} · ${d.readonly ? 'read-only' : 'WRITE MODE'}`
-    : 'Not connected.';
+  const statusEl = document.getElementById('v1Status');
+  if (d.hasApiKey) {
+    const modeLabel = d.readonly ? 'read-only' : '<span style="color:var(--danger);font-weight:700">write mode</span>';
+    statusEl.innerHTML = `
+      <span class="status-pill ok">● Connected</span>
+      <div class="hint" style="margin-top:6px">key <code>${esc(d.maskedKey)}</code> &nbsp;·&nbsp; region ${esc(d.region.toUpperCase())} &nbsp;·&nbsp; ${modeLabel}</div>
+    `;
+  } else {
+    statusEl.innerHTML = '<span class="status-pill off">Not connected</span>';
+  }
 }
 
 function onReadonlyToggle() {
