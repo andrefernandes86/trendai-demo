@@ -283,12 +283,26 @@ def system_prompt() -> str:
     )
     return (
         "You are a security operations assistant with live tool access to a real Trend Vision One tenant "
-        "via its MCP server (Cloud Posture, IAM, Attack Surface Risk Management, Cloud Account Management, "
-        "Email Security, Container Security, Endpoint Security, AI Security Guardrails, Cloud Risk Management, "
-        "Workbench alerts, and Threat Intelligence). Prefer calling a tool over guessing or making up data — "
-        "every fact you state about the tenant should come from a tool result. When a tool returns a list, "
-        "summarize the meaningful findings rather than dumping raw JSON. If a tool call fails (e.g. bad API "
-        "key, permissions, invalid parameter), tell the user plainly what went wrong.\n\n" + mode_note
+        "via its MCP server (Cloud Posture, IAM, Attack Surface Risk Management [CREM], Cloud Account "
+        "Management, Email Security, Container Security, Endpoint Security, AI Security Guardrails, Cloud "
+        "Risk Management, Workbench alerts, and Threat Intelligence).\n\n"
+        "HARD RULES — do not break these:\n"
+        "1. NEVER answer a question about the tenant's actual data (scores, counts, names, IDs, statuses, "
+        "findings, dates, anything specific) without first calling a tool that returns it. Do not invent "
+        "example JSON, example numbers, or 'here's what it might look like' illustrations — if you show data, "
+        "it must be a real tool result, not a template.\n"
+        "2. If the user's request doesn't map cleanly onto any available tool, say so explicitly ('I don't "
+        "have a tool that returns X directly, but here's the closest thing I can check...') rather than "
+        "answering with generic security knowledge dressed up as tenant-specific fact.\n"
+        "3. There is no single 'risk index' or 'overall risk score' tool. Vision One exposes risk as a "
+        "per-entity `riskScore`/`latestRiskScore` field on individual devices, users, cloud assets, and local "
+        "apps (the crem_attack_surface_* tools, sortable by orderBy=latestRiskScore), and as `score`/`severity` "
+        "on Workbench alerts. When asked about 'risk index' or 'how risky is my tenant', call the relevant "
+        "crem_attack_surface_*_list tool(s) ordered by risk score and summarize the highest-risk entities you "
+        "actually found — do not describe the concept in the abstract.\n"
+        "4. When a tool returns a list, summarize the meaningful findings rather than dumping raw JSON. If a "
+        "tool call fails (bad API key, permissions, invalid parameter), tell the user plainly what went "
+        "wrong instead of quietly falling back to a made-up answer.\n\n" + mode_note
     )
 
 
@@ -383,7 +397,16 @@ async def api_chat(body: dict):
                         if not tool_calls:
                             final_text = choice.get("content") or "(empty response)"
                             CHAT_HISTORY.append({"role": "assistant", "content": final_text})
-                            return {"reply": final_text, "toolCalls": tool_call_log}
+                            # No Vision One tool was called anywhere in this turn, so nothing in this
+                            # reply is verified tenant data — surface that plainly regardless of what
+                            # the model's own text claims, since smaller/less-tuned models will
+                            # sometimes fabricate a plausible-sounding answer instead of admitting no
+                            # tool matched the question.
+                            return {
+                                "reply": final_text,
+                                "toolCalls": tool_call_log,
+                                "grounded": bool(tool_call_log),
+                            }
 
                         messages.append(choice)
                         for tc in tool_calls:
@@ -417,7 +440,7 @@ async def api_chat(body: dict):
             "Here's what I found:\n\n" + "\n".join(f"- {t['name']}: {t['result'][:200]}" for t in tool_call_log)
         )
         CHAT_HISTORY.append({"role": "assistant", "content": fallback})
-        return {"reply": fallback, "toolCalls": tool_call_log}
+        return {"reply": fallback, "toolCalls": tool_call_log, "grounded": bool(tool_call_log)}
 
 
 @app.get("/api/chat/history")
