@@ -418,6 +418,72 @@ def extract_raw_tool_calls(text: str) -> list[dict]:
     return calls
 
 
+# Small/local models (the bundled Ollama default) can't reliably pick the
+# right tool out of the full ~60-tool catalog even with the category
+# checkboxes left at "all" — verified directly: llama3.2:1b hallucinates
+# fake API calls with 60 tools in context, but calls the right tool
+# correctly when given a short, relevant list. The category checkboxes
+# require the operator to know in advance which category to pick; this is
+# the automatic version — cheap keyword relevance scoring (no extra LLM
+# call, near-zero latency) that narrows the *candidate* tool set to
+# whatever's actually relevant to THIS message before it ever reaches the
+# model. Applies only to the local Ollama target, since that's the
+# demonstrated-small-model path; external endpoints get the full
+# (category-filtered) set as before.
+AUTO_NARROW_MAX_TOOLS = 6
+STOPWORDS = {
+    "the", "a", "an", "of", "to", "for", "and", "or", "is", "are", "what", "which", "who",
+    "show", "me", "list", "get", "have", "has", "with", "in", "on", "my", "our", "your",
+    "please", "can", "you", "do", "does", "it", "this", "that", "how", "i", "want", "would",
+    "like", "top", "most", "recent", "all",
+}
+# A safe default fallback set so the model always has something plausible
+# to try even if the query shares no vocabulary with any tool — these cover
+# the most common "how's my tenant doing" style questions.
+AUTO_NARROW_FALLBACK = [
+    "workbench_alerts_list",
+    "endpoint_security_endpoints_list",
+    "crem_attack_surface_devices_list",
+    "crem_attack_surface_high_risk_users_list",
+    "iam_accounts_list",
+]
+
+
+def _tool_search_text(t: dict) -> str:
+    return " ".join([
+        t["name"].replace("_", " "),
+        t.get("description") or "",
+        json.dumps(t.get("inputSchema") or {}),
+    ]).lower()
+
+
+def auto_narrow_tools(user_msg: str, tools: list[dict], max_tools: int = AUTO_NARROW_MAX_TOOLS) -> list[dict]:
+    if len(tools) <= max_tools:
+        return tools
+    words = {w for w in re.findall(r"[a-z0-9]+", user_msg.lower()) if w not in STOPWORDS and len(w) > 2}
+    if not words:
+        scored = []
+    else:
+        scored = []
+        for t in tools:
+            text = _tool_search_text(t)
+            score = sum(text.count(w) for w in words)
+            if score > 0:
+                scored.append((score, t))
+        scored.sort(key=lambda st: st[0], reverse=True)
+    picked = [t for _, t in scored[:max_tools]]
+    if len(picked) < min(5, max_tools):
+        picked_names = {t["name"] for t in picked}
+        by_name = {t["name"]: t for t in tools}
+        for name in AUTO_NARROW_FALLBACK:
+            if len(picked) >= max_tools:
+                break
+            if name in by_name and name not in picked_names:
+                picked.append(by_name[name])
+                picked_names.add(name)
+    return picked or tools[:max_tools]
+
+
 def mcp_tools_to_openai(tools: list[dict]) -> list[dict]:
     out = []
     for t in tools:
@@ -470,7 +536,7 @@ TOOL_CALL_TIMEOUT_SECONDS = 60
 CHAT_TURN_TIMEOUT_SECONDS = 240
 
 
-async def run_agent_turn(messages: list[dict], tool_call_log: list[dict]) -> dict:
+async def run_agent_turn(user_msg: str, messages: list[dict], tool_call_log: list[dict]) -> dict:
     """The actual tool-calling agent loop, split out from api_chat so the
     whole thing can be wrapped in a hard timeout (see api_chat below) — the
     Go MCP binary's own HTTP client has no timeout at all, so a stalled
@@ -488,6 +554,8 @@ async def run_agent_turn(messages: list[dict], tool_call_log: list[dict]) -> dic
                 ]
                 if ACTIVE_CATEGORIES is not None:
                     mcp_tools = [t for t in mcp_tools if categorize_tool(t["name"]) in ACTIVE_CATEGORIES]
+                if LLM_SETTINGS["targetType"] == "ollama":
+                    mcp_tools = auto_narrow_tools(user_msg, mcp_tools)
                 openai_tools = mcp_tools_to_openai(mcp_tools)
 
                 for _ in range(MAX_TOOL_ROUNDS):
@@ -607,7 +675,7 @@ async def api_chat(body: dict):
         tool_call_log: list[dict] = []
         try:
             return await asyncio.wait_for(
-                run_agent_turn(messages, tool_call_log), timeout=CHAT_TURN_TIMEOUT_SECONDS
+                run_agent_turn(user_msg, messages, tool_call_log), timeout=CHAT_TURN_TIMEOUT_SECONDS
             )
         except asyncio.TimeoutError:
             timeout_msg = (
