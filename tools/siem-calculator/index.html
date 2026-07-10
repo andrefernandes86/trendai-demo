@@ -557,20 +557,39 @@
           <div class="field">
             <label>Analytic Retention Period</label>
             <select id="tp-ana-ret" onchange="calc()">
-              <option value="1">1 month (included)</option>
-              <option value="2">2 months</option>
-              <option value="3">3 months</option>
-              <option value="4">4 months</option>
-              <option value="5">5 months</option>
-              <option value="6">6 months</option>
-              <option value="7">7 months</option>
-              <option value="8">8 months</option>
-              <option value="9">9 months</option>
-              <option value="10">10 months</option>
-              <option value="11">11 months</option>
-              <option value="12">1 year</option>
-              <option value="24">2 years (max)</option>
+              <option value="0">30 days (included)</option>
+              <option value="30">60 days</option>
+              <option value="60">90 days</option>
+              <option value="90">120 days</option>
+              <option value="120">150 days</option>
+              <option value="150">180 days</option>
+              <option value="240">270 days</option>
+              <option value="335">1 year</option>
+              <option value="517">1.5 years</option>
+              <option value="700">2 years (max)</option>
             </select>
+          </div>
+          <div class="field">
+            <label>Additional Archival Retention Period</label>
+            <select id="tp-ana-arch-ret" onchange="calc()">
+              <option value="0">None (included)</option>
+              <option value="30">30 days</option>
+              <option value="60">60 days</option>
+              <option value="90">90 days</option>
+              <option value="120">120 days</option>
+              <option value="150">150 days</option>
+              <option value="180">180 days</option>
+              <option value="270">270 days</option>
+              <option value="365">1 year</option>
+              <option value="547">1.5 years</option>
+              <option value="730">2 years</option>
+              <option value="1095">3 years</option>
+              <option value="1461">4 years</option>
+              <option value="1826">5 years</option>
+              <option value="2191">6 years</option>
+              <option value="2556">7 years (max)</option>
+            </select>
+            <div class="v1-hint">After the analytic retention period above ends, data can move to archival storage for an additional period, billed at the archival rate (0.05 credits/GB/month).</div>
           </div>
         </div>
       </div>
@@ -591,24 +610,21 @@
           <div class="field">
             <label>Archival Retention Period</label>
             <select id="tp-arch-ret" onchange="calc()">
-              <option value="1">1 month (included)</option>
-              <option value="2">2 months</option>
-              <option value="3">3 months</option>
-              <option value="4">4 months</option>
-              <option value="5">5 months</option>
-              <option value="6">6 months</option>
-              <option value="7">7 months</option>
-              <option value="8">8 months</option>
-              <option value="9">9 months</option>
-              <option value="10">10 months</option>
-              <option value="11">11 months</option>
-              <option value="12">1 year</option>
-              <option value="24">2 years</option>
-              <option value="36">3 years</option>
-              <option value="48">4 years</option>
-              <option value="60">5 years</option>
-              <option value="72">6 years</option>
-              <option value="84">7 years (max)</option>
+              <option value="0">30 days (included)</option>
+              <option value="30">60 days</option>
+              <option value="60">90 days</option>
+              <option value="90">120 days</option>
+              <option value="120">150 days</option>
+              <option value="150">180 days</option>
+              <option value="240">270 days</option>
+              <option value="335">1 year</option>
+              <option value="517">1.5 years</option>
+              <option value="700">2 years</option>
+              <option value="1065">3 years</option>
+              <option value="1431">4 years</option>
+              <option value="1796">5 years</option>
+              <option value="2161">6 years</option>
+              <option value="2526">7 years (max)</option>
             </select>
           </div>
         </div>
@@ -710,43 +726,37 @@
           <div class="field">
             <label>Analytic Retention Period</label>
             <select id="ec-ana-ret" onchange="calc()">
-              <option value="1">1 month (included)</option>
-              <option value="2">2 months</option>
-              <option value="3">3 months</option>
-              <option value="4">4 months</option>
-              <option value="5">5 months</option>
-              <option value="6">6 months</option>
-              <option value="7">7 months</option>
-              <option value="8">8 months</option>
-              <option value="9">9 months</option>
-              <option value="10">10 months</option>
-              <option value="11">11 months</option>
-              <option value="12">1 year</option>
-              <option value="24">2 years (max)</option>
+              <option value="0">30 days (included)</option>
+              <option value="30">60 days</option>
+              <option value="60">90 days</option>
+              <option value="90">120 days</option>
+              <option value="120">150 days</option>
+              <option value="150">180 days</option>
+              <option value="240">270 days</option>
+              <option value="335">1 year</option>
+              <option value="517">1.5 years</option>
+              <option value="700">2 years (max)</option>
             </select>
           </div>
           <div class="field">
             <label>Archival Retention Period <span class="unit">(2026 deals)</span></label>
             <select id="ec-arch-ret" onchange="calc()">
-              <option value="0">None</option>
-              <option value="1">1 month</option>
-              <option value="2">2 months</option>
-              <option value="3">3 months</option>
-              <option value="4">4 months</option>
-              <option value="5">5 months</option>
-              <option value="6">6 months</option>
-              <option value="7">7 months</option>
-              <option value="8">8 months</option>
-              <option value="9">9 months</option>
-              <option value="10">10 months</option>
-              <option value="11">11 months</option>
-              <option value="12">1 year</option>
-              <option value="24">2 years</option>
-              <option value="36">3 years</option>
-              <option value="48">4 years</option>
-              <option value="60">5 years</option>
-              <option value="72">6 years</option>
-              <option value="84">7 years (max)</option>
+              <option value="0">None (included)</option>
+              <option value="30">30 days</option>
+              <option value="60">60 days</option>
+              <option value="90">90 days</option>
+              <option value="120">120 days</option>
+              <option value="150">150 days</option>
+              <option value="180">180 days</option>
+              <option value="270">270 days</option>
+              <option value="365">1 year</option>
+              <option value="547">1.5 years</option>
+              <option value="730">2 years</option>
+              <option value="1095">3 years</option>
+              <option value="1461">4 years</option>
+              <option value="1826">5 years</option>
+              <option value="2191">6 years</option>
+              <option value="2556">7 years (max)</option>
             </select>
           </div>
         </div>
@@ -830,38 +840,32 @@
           <div class="field">
             <label>Analytic Retention Period</label>
             <select id="em-ana-ret" onchange="calc()">
-              <option value="6">6 months (included)</option>
-              <option value="7">7 months</option>
-              <option value="8">8 months</option>
-              <option value="9">9 months</option>
-              <option value="10">10 months</option>
-              <option value="11">11 months</option>
-              <option value="12">1 year</option>
-              <option value="24">2 years (max)</option>
+              <option value="0">180 days (included)</option>
+              <option value="90">270 days</option>
+              <option value="185">1 year</option>
+              <option value="367">1.5 years</option>
+              <option value="520">2 years (max)</option>
             </select>
           </div>
           <div class="field">
             <label>Archival Retention Period <span class="unit">(2026 deals)</span></label>
             <select id="em-arch-ret" onchange="calc()">
-              <option value="0">None</option>
-              <option value="1">1 month</option>
-              <option value="2">2 months</option>
-              <option value="3">3 months</option>
-              <option value="4">4 months</option>
-              <option value="5">5 months</option>
-              <option value="6">6 months</option>
-              <option value="7">7 months</option>
-              <option value="8">8 months</option>
-              <option value="9">9 months</option>
-              <option value="10">10 months</option>
-              <option value="11">11 months</option>
-              <option value="12">1 year</option>
-              <option value="24">2 years</option>
-              <option value="36">3 years</option>
-              <option value="48">4 years</option>
-              <option value="60">5 years</option>
-              <option value="72">6 years</option>
-              <option value="84">7 years (max)</option>
+              <option value="0">None (included)</option>
+              <option value="30">30 days</option>
+              <option value="60">60 days</option>
+              <option value="90">90 days</option>
+              <option value="120">120 days</option>
+              <option value="150">150 days</option>
+              <option value="180">180 days</option>
+              <option value="270">270 days</option>
+              <option value="365">1 year</option>
+              <option value="547">1.5 years</option>
+              <option value="730">2 years</option>
+              <option value="1095">3 years</option>
+              <option value="1461">4 years</option>
+              <option value="1826">5 years</option>
+              <option value="2191">6 years</option>
+              <option value="2556">7 years (max)</option>
             </select>
           </div>
         </div>
@@ -921,24 +925,21 @@
           <div class="field">
             <label>Archival Retention Period</label>
             <select id="cr-arch-ret" onchange="calc()">
-              <option value="1">1 month (included)</option>
-              <option value="2">2 months</option>
-              <option value="3">3 months</option>
-              <option value="4">4 months</option>
-              <option value="5">5 months</option>
-              <option value="6">6 months</option>
-              <option value="7">7 months</option>
-              <option value="8">8 months</option>
-              <option value="9">9 months</option>
-              <option value="10">10 months</option>
-              <option value="11">11 months</option>
-              <option value="12">1 year</option>
-              <option value="24">2 years</option>
-              <option value="36">3 years</option>
-              <option value="48">4 years</option>
-              <option value="60">5 years</option>
-              <option value="72">6 years</option>
-              <option value="84">7 years (max)</option>
+              <option value="0">30 days (included)</option>
+              <option value="30">60 days</option>
+              <option value="60">90 days</option>
+              <option value="90">120 days</option>
+              <option value="120">150 days</option>
+              <option value="150">180 days</option>
+              <option value="240">270 days</option>
+              <option value="335">1 year</option>
+              <option value="517">1.5 years</option>
+              <option value="700">2 years</option>
+              <option value="1065">3 years</option>
+              <option value="1431">4 years</option>
+              <option value="1796">5 years</option>
+              <option value="2161">6 years</option>
+              <option value="2526">7 years (max)</option>
             </select>
           </div>
           <div></div>
@@ -1013,6 +1014,7 @@
       <div class="results-section-title">3rd-Party Ingestion</div>
       <div class="result-line"><span>Analytic Ingest</span><span class="val" id="lv-tp-ana-ingest">0</span></div>
       <div class="result-line"><span>Analytic Retention</span><span class="val" id="lv-tp-ana-ret">0</span></div>
+      <div class="result-line"><span>Analytic → Archival Retention</span><span class="val" id="lv-tp-ana-arch-ret">0</span></div>
       <div class="result-line"><span>Archival Ingest</span><span class="val" id="lv-tp-arch-ingest">0</span></div>
       <div class="result-line"><span>Archival Retention</span><span class="val" id="lv-tp-arch-ret">0</span></div>
     </div>
@@ -1064,14 +1066,62 @@ function sel(id) {
   return el ? (parseFloat(el.value) || 0) : 0;
 }
 
-// Retention credit formula:
-// Credits are only charged when retention exceeds the included period.
-// Existing data is only billed when additional months are selected.
-function retentionCredits(dailyGB, existingGB, retMonths, includedMonths, ratePerGBMonth) {
-  const addlMonths = Math.max(0, retMonths - includedMonths);
-  if (addlMonths === 0) return 0;
-  const addlStored = dailyGB * 30 * addlMonths;
-  return (addlStored + existingGB) * ratePerGBMonth * 12;
+// Retention credit formula — ported directly from the "Agentic SIEM
+// calculator" tab of the TrendAI Standard Published Price List, which prices
+// retention with a day-by-day simulation rather than a flat monthly charge.
+//
+// A day's log doesn't become billable the moment it's ingested — it's free
+// for the included grace period (30 days for most streams, 180 days for
+// Email/DDI), then billable for up to `widthDays` more days before it either
+// ages out (single-tier streams) or rolls into an archival tier (two-tier
+// streams). So the "extra retention" volume ramps up linearly from zero as
+// each day's ingestion crosses the grace threshold, and only plateaus at the
+// full steady-state volume once one full `widthDays` window has elapsed.
+// The old formula skipped the ramp and charged the steady-state volume for
+// all 12 months of the year, which overcounts by 50-200%+ depending on the
+// retention window (verified against the reference workbook: it produced
+// 9,120 credits where the real model produces 6,026 for the sample inputs).
+//
+// `existingGB` (pre-existing stored data, e.g. from a trial or renewal) is
+// treated as a one-time lump ingested on day 1 — it ages through the same
+// windows as everything else. Per the reference workbook, existing data is
+// only wired into this formula for the TrendAI streams (Endpoint/Cloud,
+// Email/DDI, CREM); the 3rd-Party streams' "Existing Data Stored" fields are
+// informational only and are not billed.
+//
+// gbDays(shiftDays, widthDays) = GB-days of billable volume, where each
+// day's billable amount ramps from 0 up to `dailyGB * widthDays` over the
+// first `widthDays` days after the grace period, then holds steady:
+function retentionGbDays(dailyGB, existingGB, shiftDays, widthDays, licenseDays) {
+  if (widthDays <= 0) return 0;
+  const sMax = Math.max(0, licenseDays - shiftDays);
+  if (sMax <= 0) return 0;
+  const rampDays = Math.min(widthDays, sMax);      // days still ramping up within this horizon
+  const plateauDays = Math.max(0, sMax - widthDays); // days already at full steady-state volume
+  return dailyGB * (rampDays * (rampDays + 1) / 2 + plateauDays * widthDays) + existingGB * rampDays;
+}
+function retentionCost(dailyGB, existingGB, shiftDays, widthDays, ratePerGBMonth, licenseDays) {
+  return retentionGbDays(dailyGB, existingGB, shiftDays, widthDays, licenseDays) * (ratePerGBMonth * 12 / 365);
+}
+// Cumulative cost through `licenseDays`, split into the analytic-tier charge
+// and the (optional) archival-tier charge layered on top of it.
+function tieredRetentionCost(dailyGB, existingGB, includedDays, extraAnalyticDays, rateAnalytic, extraArchivalDays, rateArchival, licenseDays) {
+  const analytic = retentionCost(dailyGB, existingGB, includedDays, extraAnalyticDays, rateAnalytic, licenseDays);
+  const archival = extraArchivalDays > 0
+    ? retentionCost(dailyGB, existingGB, includedDays + extraAnalyticDays, extraArchivalDays, rateArchival, licenseDays)
+    : 0;
+  return { analytic, archival };
+}
+// A single year's own credits = cumulative-through-this-year minus
+// cumulative-through-last-year, so the ramp-up is correctly attributed to
+// whichever year it actually happens in instead of being flattened out.
+function yearSlice(cumFn, yr) {
+  const now = cumFn(yr * 365);
+  const prior = cumFn((yr - 1) * 365);
+  if (typeof now === 'number') return now - prior;
+  const out = {};
+  for (const k in now) out[k] = now[k] - prior[k];
+  return out;
 }
 
 function getInputs() {
@@ -1081,7 +1131,8 @@ function getInputs() {
   // 3rd-Party Analytic
   const tpAnaDaily = v('tp-ana-daily');
   const tpAnaExisting = v('tp-ana-existing');
-  const tpAnaRet = sel('tp-ana-ret');       // months
+  const tpAnaRet = sel('tp-ana-ret');        // extra days beyond the 30-day included grace
+  const tpAnaArchRet = sel('tp-ana-arch-ret'); // additional archival-tier days layered on top
 
   // 3rd-Party Archival
   const tpArchDaily = v('tp-arch-daily');
@@ -1128,7 +1179,7 @@ function getInputs() {
 
   return {
     period, year,
-    tpAnaDaily, tpAnaExisting, tpAnaRet,
+    tpAnaDaily, tpAnaExisting, tpAnaRet, tpAnaArchRet,
     tpArchDaily, tpArchExisting, tpArchRet,
     ecDaily, ecExisting, ecAnaRet, ecArchRet,
     emDaily, emExisting, emAnaRet, emArchRet,
@@ -1137,35 +1188,45 @@ function getInputs() {
 }
 
 function calcYear(inp, yr) {
-  // --- 3P Analytic ---
+  // --- 3P Analytic (two-tier: analytic + optional archival overflow).
+  // Existing data is NOT billed for 3rd-party streams (matches the reference workbook).
   const tpAnaIngest = inp.tpAnaDaily * 365 * 3;
-  const tpAnaRet = retentionCredits(inp.tpAnaDaily, inp.tpAnaExisting, inp.tpAnaRet, 1, 0.2);
+  const tpAna = yearSlice(
+    (days) => tieredRetentionCost(inp.tpAnaDaily, 0, 30, inp.tpAnaRet, 0.2, inp.tpAnaArchRet, 0.05, days),
+    yr
+  );
+  const tpAnaRet = tpAna.analytic;
+  const tpAnaArchRet = tpAna.archival;
 
-  // --- 3P Archival ---
+  // --- 3P Archival (single tier, own 30-day included grace) ---
   const tpArchIngest = inp.tpArchDaily * 365 * 1;
-  const tpArchRet = retentionCredits(inp.tpArchDaily, inp.tpArchExisting, inp.tpArchRet, 1, 0.05);
+  const tpArchRet = yearSlice((days) => retentionCost(inp.tpArchDaily, 0, 30, inp.tpArchRet, 0.05, days), yr);
 
-  // --- Endpoint/Cloud ---
-  const ecAnaRet = retentionCredits(inp.ecDaily, inp.ecExisting, inp.ecAnaRet, 1, 0.2);
-  const ecArchRet = inp.ecArchRet > 0
-    ? retentionCredits(inp.ecDaily, 0, inp.ecArchRet, 0, 0.05)
-    : 0;
+  // --- Endpoint/Cloud (two-tier: analytic + optional archival overflow) ---
+  const ec = yearSlice(
+    (days) => tieredRetentionCost(inp.ecDaily, inp.ecExisting, 30, inp.ecAnaRet, 0.2, inp.ecArchRet, 0.05, days),
+    yr
+  );
+  const ecAnaRet = ec.analytic;
+  const ecArchRet = ec.archival;
 
-  // --- Email/DDI ---
-  const emAnaRet = retentionCredits(inp.emDaily, inp.emExisting, inp.emAnaRet, 6, 0.2);
-  const emArchRet = inp.emArchRet > 0
-    ? retentionCredits(inp.emDaily, 0, inp.emArchRet, 0, 0.05)
-    : 0;
+  // --- Email/DDI (two-tier, 180-day included grace on the analytic tier) ---
+  const em = yearSlice(
+    (days) => tieredRetentionCost(inp.emDaily, inp.emExisting, 180, inp.emAnaRet, 0.2, inp.emArchRet, 0.05, days),
+    yr
+  );
+  const emAnaRet = em.analytic;
+  const emArchRet = em.archival;
 
-  // --- CREM ---
-  const crArchRet = retentionCredits(inp.crDaily, inp.crExisting, inp.crArchRet, 1, 0.05);
+  // --- CREM (single tier, own 30-day included grace) ---
+  const crArchRet = yearSlice((days) => retentionCost(inp.crDaily, inp.crExisting, 30, inp.crArchRet, 0.05, days), yr);
 
   const total3PIngest = tpAnaIngest + tpArchIngest;
-  const total3PRet = tpAnaRet + tpArchRet;
+  const total3PRet = tpAnaRet + tpAnaArchRet + tpArchRet;
   const totalTrendAIRet = ecAnaRet + ecArchRet + emAnaRet + emArchRet + crArchRet;
 
   return {
-    tpAnaIngest, tpAnaRet,
+    tpAnaIngest, tpAnaRet, tpAnaArchRet,
     tpArchIngest, tpArchRet,
     ecAnaRet, ecArchRet,
     emAnaRet, emArchRet,
@@ -1187,6 +1248,7 @@ function calc() {
   // Update live panel
   document.getElementById('lv-tp-ana-ingest').textContent = fmt(res.tpAnaIngest);
   document.getElementById('lv-tp-ana-ret').textContent = fmt(res.tpAnaRet);
+  document.getElementById('lv-tp-ana-arch-ret').textContent = fmt(res.tpAnaArchRet);
   document.getElementById('lv-tp-arch-ingest').textContent = fmt(res.tpArchIngest);
   document.getElementById('lv-tp-arch-ret').textContent = fmt(res.tpArchRet);
   document.getElementById('lv-ec-daily').textContent = inp.ecDaily.toFixed(2) + ' GB';
@@ -1334,46 +1396,57 @@ function updateResults(inp, yr) {
     h += `<tr class="rpt-sub-total"><td colspan="2">${lbl}</td><td class="total-val">${fmt(val)}</td></tr>`;
   };
 
+  // Explains one retention tier: the billable volume ramps up linearly for
+  // the first `widthDays` days after the `includedDays` grace period, then
+  // holds at a steady state — it is NOT billed at the full steady-state
+  // volume for all 12 months, so we show the ramp/plateau split rather than
+  // a flat "GB × rate × 12" line.
+  const explainRetention = (dailyGB, existingGB, includedDays, widthDays, rate, licenseDays, credits, includedLabel) => {
+    if (widthDays <= 0) {
+      row('Retention Period', `${includedLabel} (included, no additional charge)`);
+      return;
+    }
+    const sMax = Math.max(0, licenseDays - includedDays);
+    const rampDays = Math.min(widthDays, sMax);
+    const plateauDays = Math.max(0, sMax - widthDays);
+    const steadyStateGB = dailyGB * widthDays;
+    row('Included Grace Period', includedLabel);
+    row('Additional Retention Window', `${widthDays} days`);
+    row('Steady-State Billable Volume', `${fmt(steadyStateGB)} GB`, `${dailyGB.toFixed(4)} GB/day × ${widthDays} days`);
+    if (existingGB > 0) row('Existing Data (one-time, ages in on day 1)', `${fmt(existingGB)} GB`);
+    row('Days Still Ramping Up This Year', `${rampDays} of ${widthDays} days`);
+    if (plateauDays > 0) row('Days Already at Steady State', `${plateauDays} days`);
+    cred('Retention Credits (ramp-weighted, not flat 12mo)', `Σ billable GB per day × (${rate} × 12 / 365)`, credits);
+  };
+
   // ── SECTION 1: 3rd-Party ────────────────────────────────────
   sec('Section 1 — 3rd-Party Data Ingestion &amp; Retention');
+  const licenseDays = inp.period * 365;
 
   sub('Analytic Log Ingestion &nbsp;·&nbsp; 3 credits / GB');
   row('Daily Ingestion', `${inp.tpAnaDaily.toFixed(2)} GB/day`);
   row('Annual Volume', `${fmt(inp.tpAnaDaily * 365)} GB`, `${inp.tpAnaDaily.toFixed(2)} × 365 days`);
   row('Credit Rate', '3 credits / GB');
-  row('Existing Analytic Data Stored', `${fmt(inp.tpAnaExisting)} GB`, 'not charged for ingestion');
+  row('Existing Analytic Data Stored', `${fmt(inp.tpAnaExisting)} GB`, 'informational only — not billed for 3rd-party streams');
   cred('Analytic Log Ingestion Credits', `${fmt(inp.tpAnaDaily * 365)} GB × 3`, res.tpAnaIngest);
 
-  const anaAddl = Math.max(0, inp.tpAnaRet - 1);
-  const anaAddlGB = inp.tpAnaDaily * 30 * anaAddl;
-  const anaTotalGB = anaAddlGB + inp.tpAnaExisting;
-  sub(`Analytic Data Retention &nbsp;·&nbsp; 0.2 credits / GB / month &nbsp;·&nbsp; ${inp.tpAnaRet} month${inp.tpAnaRet>1?'s':''} (1 included)`);
-  row('Retention Period', `${inp.tpAnaRet} month${inp.tpAnaRet>1?'s':''}`);
-  row('Included Period', '1 month (free)');
-  row('Additional Months Billable', `${anaAddl} months`);
-  row('Additional GB Stored', `${fmt(anaAddlGB)} GB`, `${inp.tpAnaDaily.toFixed(2)} GB/day × 30 days × ${anaAddl} months`);
-  row('Existing Data Stored', `${fmt(inp.tpAnaExisting)} GB`);
-  row('Total GB Subject to Retention Billing', `${fmt(anaTotalGB)} GB`);
-  row('Credit Rate', '0.2 credits / GB / month');
-  cred('Analytic Retention Credits', `${fmt(anaTotalGB)} GB × 0.2 × 12 months`, res.tpAnaRet);
+  sub('Analytic Data Retention &nbsp;·&nbsp; 0.2 credits / GB / month');
+  explainRetention(inp.tpAnaDaily, 0, 30, inp.tpAnaRet, 0.2, licenseDays, res.tpAnaRet, '30 days');
 
-  const archAddl2 = Math.max(0, inp.tpArchRet - 1);
-  const archAddlGB2 = inp.tpArchDaily * 30 * archAddl2;
-  const archTotalGB2 = archAddlGB2 + inp.tpArchExisting;
+  if (inp.tpAnaArchRet > 0) {
+    sub('Analytic &rarr; Archival Retention (overflow) &nbsp;·&nbsp; 0.05 credits / GB / month');
+    explainRetention(inp.tpAnaDaily, 0, 30 + inp.tpAnaRet, inp.tpAnaArchRet, 0.05, licenseDays, res.tpAnaArchRet, `${30 + inp.tpAnaRet} days (analytic tier)`);
+  }
+
   sub('Archival Log Ingestion &nbsp;·&nbsp; 1 credit / GB');
   row('Daily Ingestion', `${inp.tpArchDaily.toFixed(2)} GB/day`);
   row('Annual Volume', `${fmt(inp.tpArchDaily * 365)} GB`, `${inp.tpArchDaily.toFixed(2)} × 365 days`);
   row('Credit Rate', '1 credit / GB');
-  row('Existing Archival Data Stored', `${fmt(inp.tpArchExisting)} GB`, 'not charged for ingestion');
+  row('Existing Archival Data Stored', `${fmt(inp.tpArchExisting)} GB`, 'informational only — not billed for 3rd-party streams');
   cred('Archival Log Ingestion Credits', `${fmt(inp.tpArchDaily * 365)} GB × 1`, res.tpArchIngest);
 
-  sub(`Archival Data Retention &nbsp;·&nbsp; 0.05 credits / GB / month &nbsp;·&nbsp; ${inp.tpArchRet} month${inp.tpArchRet>1?'s':''} (1 included)`);
-  row('Retention Period', `${inp.tpArchRet} month${inp.tpArchRet>1?'s':''}`);
-  row('Additional Months Billable', `${archAddl2} months`);
-  row('Additional GB Stored', `${fmt(archAddlGB2)} GB`, `${inp.tpArchDaily.toFixed(2)} × 30 × ${archAddl2}`);
-  row('Existing Data Stored', `${fmt(inp.tpArchExisting)} GB`);
-  row('Total GB Subject to Retention Billing', `${fmt(archTotalGB2)} GB`);
-  cred('Archival Retention Credits', `${fmt(archTotalGB2)} GB × 0.05 × 12 months`, res.tpArchRet);
+  sub('Archival Data Retention &nbsp;·&nbsp; 0.05 credits / GB / month');
+  explainRetention(inp.tpArchDaily, 0, 30, inp.tpArchRet, 0.05, licenseDays, res.tpArchRet, '30 days');
 
   subtot('3rd-Party Total Credits', res.total3PIngest + res.total3PRet);
 
@@ -1405,25 +1478,14 @@ function updateResults(inp, yr) {
   if (!anyEc && ecOver === 0) row('No products configured', '—');
   if (ecOver > 0) row('⚡ Override Daily Ingestion', `${ecOver.toFixed(2)} GB/day`, 'overrides unit count estimates');
   row('Total Daily Ingestion', `${inp.ecDaily.toFixed(4)} GB/day`, ecOver > 0 ? 'override applied' : 'sum of all products');
-  row('Existing Analytic Data Stored', `${fmt(inp.ecExisting)} GB`);
+  row('Existing Analytic Data Stored', `${fmt(inp.ecExisting)} GB`, 'ages in on day 1, billed like a normal day\'s ingestion');
 
-  const ecAddl = Math.max(0, inp.ecAnaRet - 1);
-  const ecAddlGB = inp.ecDaily * 30 * ecAddl;
-  const ecTotGB = ecAddlGB + inp.ecExisting;
-  sub(`Analytic Retention &nbsp;·&nbsp; 0.2 credits / GB / month &nbsp;·&nbsp; ${inp.ecAnaRet} month${inp.ecAnaRet>1?'s':''} (1 included)`);
-  row('Retention Period', `${inp.ecAnaRet} month${inp.ecAnaRet>1?'s':''}`);
-  row('Additional Months Billable', `${ecAddl} months`);
-  row('Additional GB Stored', `${fmt(ecAddlGB)} GB`, `${inp.ecDaily.toFixed(4)} × 30 × ${ecAddl}`);
-  row('Existing Data Stored', `${fmt(inp.ecExisting)} GB`);
-  row('Total GB Subject to Retention Billing', `${fmt(ecTotGB)} GB`);
-  cred('Analytic Retention Credits', `${fmt(ecTotGB)} GB × 0.2 × 12 months`, res.ecAnaRet);
+  sub('Analytic Retention &nbsp;·&nbsp; 0.2 credits / GB / month');
+  explainRetention(inp.ecDaily, inp.ecExisting, 30, inp.ecAnaRet, 0.2, licenseDays, res.ecAnaRet, '30 days');
 
   if (inp.ecArchRet > 0) {
-    const ecArchGB = inp.ecDaily * 30 * inp.ecArchRet;
-    sub(`Archival Retention (2026 deals) &nbsp;·&nbsp; 0.05 credits / GB / month &nbsp;·&nbsp; ${inp.ecArchRet} months`);
-    row('Archival Retention Period', `${inp.ecArchRet} months`);
-    row('GB Stored (archival tier)', `${fmt(ecArchGB)} GB`, `${inp.ecDaily.toFixed(4)} × 30 × ${inp.ecArchRet}`);
-    cred('Archival Retention Credits', `${fmt(ecArchGB)} GB × 0.05 × 12 months`, res.ecArchRet);
+    sub('Archival Retention (2026 deals) &nbsp;·&nbsp; 0.05 credits / GB / month');
+    explainRetention(inp.ecDaily, inp.ecExisting, 30 + inp.ecAnaRet, inp.ecArchRet, 0.05, licenseDays, res.ecArchRet, `${30 + inp.ecAnaRet} days (analytic tier)`);
   }
 
   subtot('Endpoint, Cloud &amp; Network Total Credits', res.ecAnaRet + res.ecArchRet);
@@ -1451,25 +1513,14 @@ function updateResults(inp, yr) {
   if (!anyEm && emOver === 0) row('No products configured', '—');
   if (emOver > 0) row('⚡ Override Daily Ingestion', `${emOver.toFixed(2)} GB/day`, 'overrides unit count estimates');
   row('Total Daily Ingestion', `${inp.emDaily.toFixed(4)} GB/day`);
-  row('Existing Analytic Data Stored', `${fmt(inp.emExisting)} GB`);
+  row('Existing Analytic Data Stored', `${fmt(inp.emExisting)} GB`, 'ages in on day 1, billed like a normal day\'s ingestion');
 
-  const emAddl = Math.max(0, inp.emAnaRet - 6);
-  const emAddlGB = inp.emDaily * 30 * emAddl;
-  const emTotGB = emAddlGB + inp.emExisting;
-  sub(`Analytic Retention &nbsp;·&nbsp; 0.2 credits / GB / month &nbsp;·&nbsp; ${inp.emAnaRet} months (6 included)`);
-  row('Retention Period', `${inp.emAnaRet} months`);
-  row('Included Period', '6 months (free)');
-  row('Additional Months Billable', `${emAddl} months`);
-  row('Additional GB Stored', `${fmt(emAddlGB)} GB`, `${inp.emDaily.toFixed(4)} × 30 × ${emAddl}`);
-  row('Existing Data Stored', `${fmt(inp.emExisting)} GB`);
-  row('Total GB Subject to Retention Billing', `${fmt(emTotGB)} GB`);
-  cred('Analytic Retention Credits', `${fmt(emTotGB)} GB × 0.2 × 12 months`, res.emAnaRet);
+  sub('Analytic Retention &nbsp;·&nbsp; 0.2 credits / GB / month');
+  explainRetention(inp.emDaily, inp.emExisting, 180, inp.emAnaRet, 0.2, licenseDays, res.emAnaRet, '180 days');
 
   if (inp.emArchRet > 0) {
-    const emArchGB = inp.emDaily * 30 * inp.emArchRet;
-    sub(`Archival Retention (2026 deals) &nbsp;·&nbsp; 0.05 credits / GB / month &nbsp;·&nbsp; ${inp.emArchRet} months`);
-    row('GB Stored (archival tier)', `${fmt(emArchGB)} GB`, `${inp.emDaily.toFixed(4)} × 30 × ${inp.emArchRet}`);
-    cred('Archival Retention Credits', `${fmt(emArchGB)} GB × 0.05 × 12 months`, res.emArchRet);
+    sub('Archival Retention (2026 deals) &nbsp;·&nbsp; 0.05 credits / GB / month');
+    explainRetention(inp.emDaily, inp.emExisting, 180 + inp.emAnaRet, inp.emArchRet, 0.05, licenseDays, res.emArchRet, `${180 + inp.emAnaRet} days (analytic tier)`);
   }
 
   subtot('Email and Network Total Credits', res.emAnaRet + res.emArchRet);
@@ -1486,19 +1537,10 @@ function updateResults(inp, yr) {
   if (crOver > 0)  row('⚡ Override Daily Ingestion', `${crOver.toFixed(4)} GB/day`,           'overrides unit count estimates');
   if (crEp === 0 && crCloud === 0 && crOver === 0) row('No CREM products configured', '—');
   row('Total Daily Ingestion', `${inp.crDaily.toFixed(4)} GB/day`);
-  row('Existing Archival Data Stored', `${fmt(inp.crExisting)} GB`);
+  row('Existing Archival Data Stored', `${fmt(inp.crExisting)} GB`, 'ages in on day 1, billed like a normal day\'s ingestion');
 
-  const crAddl  = Math.max(0, inp.crArchRet - 1);
-  const crAddlGB = inp.crDaily * 30 * crAddl;
-  const crTotGB  = crAddlGB + inp.crExisting;
-  sub(`Archival Retention &nbsp;·&nbsp; 0.05 credits / GB / month &nbsp;·&nbsp; ${inp.crArchRet} month${inp.crArchRet>1?'s':''} (1 included)`);
-  row('Retention Period', `${inp.crArchRet} month${inp.crArchRet>1?'s':''}`);
-  row('Included Period', '1 month (free)');
-  row('Additional Months Billable', `${crAddl} months`);
-  row('Additional GB Stored', `${fmt(crAddlGB)} GB`, `${inp.crDaily.toFixed(4)} × 30 × ${crAddl}`);
-  row('Existing Data Stored', `${fmt(inp.crExisting)} GB`);
-  row('Total GB Subject to Retention Billing', `${fmt(crTotGB)} GB`);
-  cred('Archival Retention Credits', `${fmt(crTotGB)} GB × 0.05 × 12 months`, res.crArchRet);
+  sub('Archival Retention &nbsp;·&nbsp; 0.05 credits / GB / month');
+  explainRetention(inp.crDaily, inp.crExisting, 30, inp.crArchRet, 0.05, licenseDays, res.crArchRet, '30 days');
 
   subtot('CREM Total Credits', res.crArchRet);
 
