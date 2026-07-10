@@ -444,6 +444,11 @@
   .rpt .rpt-sub-total td.total-val { text-align:right; color:var(--red); font-size:15px; }
   .rpt .rpt-grand td { background:rgba(215,25,33,0.2); border-top:3px solid var(--red); font-weight:800; padding:14px; font-size:15px; }
   .rpt .rpt-grand td.grand-val { text-align:right; color:white; font-size:20px; }
+  .rpt .rpt-note td { padding:10px 14px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border); }
+  .rpt-formula { font-size:11.5px; color:var(--muted); line-height:1.6; }
+  .rpt-formula-row { padding:3px 0; }
+  .rpt-formula-row b { color:var(--text); }
+  .rpt-formula-row code { color:#818cf8; font-family:monospace; background:rgba(99,102,241,0.1); padding:1px 4px; border-radius:3px; }
 </style>
 </head>
 <body>
@@ -1395,28 +1400,56 @@ function updateResults(inp, yr) {
   const subtot = (lbl,val) => {
     h += `<tr class="rpt-sub-total"><td colspan="2">${lbl}</td><td class="total-val">${fmt(val)}</td></tr>`;
   };
+  const note = (t) => { h += `<tr class="rpt-note"><td colspan="3">${t}</td></tr>`; };
 
-  // Explains one retention tier: the billable volume ramps up linearly for
-  // the first `widthDays` days after the `includedDays` grace period, then
-  // holds at a steady state — it is NOT billed at the full steady-state
-  // volume for all 12 months, so we show the ramp/plateau split rather than
-  // a flat "GB × rate × 12" line.
+  // ── Formula reference (stated once, field names match the workbook) ──
+  // This is the exact model from the "Agentic SIEM calculator" tab of the
+  // TrendAI Standard Published Price List — a day-by-day simulation, not a
+  // flat monthly charge. Every retention line below plugs its own numbers
+  // into this same formula, so the arithmetic can be reproduced by hand or
+  // rebuilt in Excel using the field names shown.
+  sec('Formula Reference — Retention Credits');
+  note(`
+    <div class="rpt-formula">
+      <div class="rpt-formula-row"><b>Included Grace Period</b> — days of storage already covered by the ingestion price (30 days for most streams, 180 days for Email/DDI). No charge during this window.</div>
+      <div class="rpt-formula-row"><b>Additional Retention Window</b> (<code>widthDays</code>) — the extra days selected in the "Retention Period" dropdown, beyond the included grace period.</div>
+      <div class="rpt-formula-row"><b>Ramp Days</b> = MIN(widthDays, License Period Days − Included Grace Period) — a day's log only becomes billable once it crosses the grace period, so the billable volume grows by one day's <code>Daily Ingestion (GB)</code> each day until the full window has elapsed.</div>
+      <div class="rpt-formula-row"><b>Plateau Days</b> = MAX(0, License Period Days − Included Grace Period − widthDays) — once the window is full, the billable volume holds steady at <code>Daily Ingestion (GB) × widthDays</code> for the rest of the license period.</div>
+      <div class="rpt-formula-row"><b>Billable GB-Days</b> = Daily Ingestion × [ Ramp Days × (Ramp Days + 1) / 2 &nbsp;+&nbsp; Plateau Days × widthDays ] &nbsp;+&nbsp; Existing Data Stored (GB) × Ramp Days</div>
+      <div class="rpt-formula-row"><b>Retention Credits</b> = Billable GB-Days × (Credits per GB per Month × 12 / 365)</div>
+      <div class="rpt-formula-row">A two-tier stream (e.g. analytic logs that later move to archival storage) repeats this same formula for the archival tier, with its own Included Grace Period shifted forward by the analytic tier's own (grace + width).</div>
+    </div>`);
+
+  // Explains one retention tier using the exact formula above, with every
+  // intermediate number shown so the result can be checked by hand or
+  // reproduced in Excel.
   const explainRetention = (dailyGB, existingGB, includedDays, widthDays, rate, licenseDays, credits, includedLabel) => {
+    row('License Period (Year)', `${licenseDays / 365}`, `License Period Days = ${licenseDays}`);
+    row('Daily Ingestion (GB)', dailyGB.toFixed(4));
+    if (existingGB > 0) row('Existing Data Stored (GB)', fmt(existingGB));
+    row('Included Grace Period', includedLabel);
     if (widthDays <= 0) {
-      row('Retention Period', `${includedLabel} (included, no additional charge)`);
+      row('Additional Retention Window', '0 days (included, no additional charge)');
+      cred('Retention Credits', '0 (no additional retention window selected)', 0);
       return;
     }
     const sMax = Math.max(0, licenseDays - includedDays);
     const rampDays = Math.min(widthDays, sMax);
     const plateauDays = Math.max(0, sMax - widthDays);
-    const steadyStateGB = dailyGB * widthDays;
-    row('Included Grace Period', includedLabel);
-    row('Additional Retention Window', `${widthDays} days`);
-    row('Steady-State Billable Volume', `${fmt(steadyStateGB)} GB`, `${dailyGB.toFixed(4)} GB/day × ${widthDays} days`);
-    if (existingGB > 0) row('Existing Data (one-time, ages in on day 1)', `${fmt(existingGB)} GB`);
-    row('Days Still Ramping Up This Year', `${rampDays} of ${widthDays} days`);
-    if (plateauDays > 0) row('Days Already at Steady State', `${plateauDays} days`);
-    cred('Retention Credits (ramp-weighted, not flat 12mo)', `Σ billable GB per day × (${rate} × 12 / 365)`, credits);
+    const rampGbDays = rampDays * (rampDays + 1) / 2;
+    const plateauGbDays = plateauDays * widthDays;
+    const existingGbDays = existingGB > 0 ? existingGB * rampDays : 0;
+    const totalGbDays = dailyGB * (rampGbDays + plateauGbDays) + existingGbDays;
+    const dailyRate = rate * 12 / 365;
+    row('Additional Retention Window (widthDays)', `${widthDays} days`);
+    row('Ramp Days this Year', `${rampDays}`, `MIN(${widthDays}, ${licenseDays} − ${includedDays})`);
+    row('Plateau Days this Year', `${plateauDays}`, `MAX(0, ${sMax} − ${widthDays})`);
+    row('Ramp GB-Days', fmt(dailyGB * rampGbDays), `${dailyGB.toFixed(4)} × [${rampDays} × ${rampDays + 1} / 2]`);
+    if (plateauDays > 0) row('Plateau GB-Days', fmt(dailyGB * plateauGbDays), `${dailyGB.toFixed(4)} × ${plateauDays} × ${widthDays}`);
+    if (existingGB > 0) row('Existing-Data GB-Days', fmt(existingGbDays), `${fmt(existingGB)} × ${rampDays}`);
+    row('Total Billable GB-Days', fmt(totalGbDays));
+    row('Credits per GB per Month', rate);
+    cred('Retention Credits', `${fmt(totalGbDays)} GB-days × (${rate} × 12 / 365)`, credits);
   };
 
   // ── SECTION 1: 3rd-Party ────────────────────────────────────
