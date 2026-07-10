@@ -210,7 +210,10 @@
         ⚠️ Write mode enables real, often irreversible Vision One actions (deleting IAM accounts/API keys,
         deleting threat intel objects, inviting accounts, etc.). Only enable this if you mean it.
       </div>
-      <button class="btn" style="width:100%;margin-top:6px" onclick="saveV1Settings()">Save &amp; Connect</button>
+      <div class="row" style="margin-top:6px">
+        <button class="btn" onclick="saveV1Settings()">Save &amp; Connect</button>
+        <button class="btn ghost" style="flex:0 0 auto" onclick="clearV1Key()" title="Remove the stored API key from server memory">Clear Key</button>
+      </div>
       <div class="hint" id="v1Status">Not connected.</div>
     </div>
 
@@ -239,7 +242,10 @@
         </div>
         <div class="field">
           <label>API Key <span style="color:var(--muted)">(optional)</span></label>
-          <input type="password" id="openaiKey" placeholder="sk-..."/>
+          <div class="row">
+            <input type="password" id="openaiKey" placeholder="sk-..."/>
+            <button class="btn ghost small" style="flex:0 0 auto" onclick="clearLlmKey()" title="Remove the stored API key from server memory">Clear Key</button>
+          </div>
         </div>
         <div class="field">
           <label>Model</label>
@@ -322,6 +328,16 @@ async function saveV1Settings() {
   loadTools();
 }
 
+async function clearV1Key() {
+  if (!confirm('Clear the stored Vision One API key from memory? Anyone using this tool afterward will need to enter their own key before chatting again.')) return;
+  const res = await fetch('/api/settings/v1/clear-key', { method: 'POST' });
+  if (!res.ok) { showError('Could not clear the Vision One API key: ' + (await res.text())); return; }
+  document.getElementById('v1ApiKey').value = '';
+  await loadV1Settings();
+  document.getElementById('toolsSummary').textContent = 'Connect to load the live tool list.';
+  document.getElementById('toolsList').innerHTML = '';
+}
+
 function setTargetType(t) {
   llmTargetType = t;
   document.getElementById('optOllama').classList.toggle('active', t === 'ollama');
@@ -375,6 +391,14 @@ async function saveLlmSettings() {
   };
   const res = await fetch('/api/settings/llm', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
   if (!res.ok) { showError('Could not save model settings: ' + (await res.text())); return; }
+  document.getElementById('openaiKey').value = '';
+  await loadLlmSettings();
+}
+
+async function clearLlmKey() {
+  if (!confirm('Clear the stored LLM endpoint API key from memory?')) return;
+  const res = await fetch('/api/settings/llm/clear-key', { method: 'POST' });
+  if (!res.ok) { showError('Could not clear the LLM API key: ' + (await res.text())); return; }
   document.getElementById('openaiKey').value = '';
   await loadLlmSettings();
 }

@@ -96,6 +96,18 @@ async def save_v1_settings(body: dict):
     }
 
 
+@app.post("/api/settings/v1/clear-key")
+def clear_v1_key():
+    """Drop the Vision One API key from memory so the tool can be handed off
+    to the next person without carrying over the previous operator's
+    credential. (Python strings are immutable, so this can't overwrite the
+    underlying memory bytes — but it does remove the only reference to the
+    key, which is the strongest guarantee this process can make; the string
+    becomes unreachable and eligible for garbage collection immediately.)"""
+    V1_SETTINGS["api_key"] = ""
+    return {"ok": True, "hasApiKey": False}
+
+
 @app.get("/api/settings/llm")
 def get_llm_settings():
     return {
@@ -117,6 +129,14 @@ async def save_llm_settings(body: dict):
     if api_key:
         LLM_SETTINGS["apiKey"] = api_key
     LLM_SETTINGS["model"] = str(body.get("model", "")).strip()
+    return {"ok": True, **get_llm_settings()}
+
+
+@app.post("/api/settings/llm/clear-key")
+def clear_llm_key():
+    """Drop the external LLM endpoint's API key from memory (same guarantee
+    as clear_v1_key above — see that docstring)."""
+    LLM_SETTINGS["apiKey"] = ""
     return {"ok": True, **get_llm_settings()}
 
 
