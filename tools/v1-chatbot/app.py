@@ -271,7 +271,40 @@ async def api_list_tools():
         grouped.setdefault(categorize_tool(t["name"]), []).append(t)
     for cat in grouped:
         grouped[cat].sort(key=lambda t: t["name"])
-    return {"total": len(tools), "readonly": V1_SETTINGS["readonly"], "categories": grouped}
+    return {
+        "total": len(tools),
+        "readonly": V1_SETTINGS["readonly"],
+        "categories": grouped,
+        "activeCategories": sorted(ACTIVE_CATEGORIES) if ACTIVE_CATEGORIES is not None else None,
+    }
+
+
+# ACTIVE_CATEGORIES scopes which tool categories are actually OFFERED to the
+# LLM (None = all). Small/local models struggle to pick the right tool out
+# of the full ~60-tool catalog and a long system prompt — verified directly:
+# llama3.2:1b calls a tool correctly when given one relevant tool and a short
+# prompt, but hallucinates fake Python code instead when given all 60 tools
+# + the full system prompt (2000+ prompt tokens of tool schemas alone). This
+# doesn't restrict what can actually be EXECUTED (that's the readonly flag's
+# job) — it only narrows what's advertised in the `tools` array sent to the
+# model, so an operator using a small model can focus it on just the
+# categories relevant to what they're asking about.
+ACTIVE_CATEGORIES: set[str] | None = None
+
+
+@app.post("/api/settings/tool-categories")
+async def save_active_categories(body: dict):
+    global ACTIVE_CATEGORIES
+    categories = body.get("categories")
+    if categories is None:
+        ACTIVE_CATEGORIES = None
+    else:
+        valid = {label for _, label in TOOL_CATEGORIES} | {"Other"}
+        chosen = {str(c) for c in categories if str(c) in valid}
+        if not chosen:
+            raise HTTPException(400, "Select at least one category, or omit 'categories' to enable all.")
+        ACTIVE_CATEGORIES = chosen
+    return {"ok": True, "activeCategories": sorted(ACTIVE_CATEGORIES) if ACTIVE_CATEGORIES is not None else None}
 
 
 # --- Chat -----------------------------------------------------------------
@@ -453,6 +486,8 @@ async def run_agent_turn(messages: list[dict], tool_call_log: list[dict]) -> dic
                     {"name": t.name, "description": t.description or "", "inputSchema": t.inputSchema or {}}
                     for t in tools_resp.tools
                 ]
+                if ACTIVE_CATEGORIES is not None:
+                    mcp_tools = [t for t in mcp_tools if categorize_tool(t["name"]) in ACTIVE_CATEGORIES]
                 openai_tools = mcp_tools_to_openai(mcp_tools)
 
                 for _ in range(MAX_TOOL_ROUNDS):
