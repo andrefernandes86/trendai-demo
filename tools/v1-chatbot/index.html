@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TrendAI Vision One — Chatbot</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --bg-2: #2d2d44;
+    --card: #252540;
+    --border: #4a4a6a;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --red: #d71921;
+    --red-dark: #a01218;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { color-scheme: dark; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(215, 25, 33, 0.18), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(215, 25, 33, 0.10), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  a { color: inherit; }
+  code, pre { font-family: ui-monospace, Menlo, monospace; }
+
+  header.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 28px; border-bottom: 3px solid var(--red);
+  }
+  header.topbar .brand { display: flex; align-items: center; gap: 12px; }
+  header.topbar h1 { font-size: 18px; font-weight: 700; }
+  header.topbar .badge {
+    background: rgba(215,25,33,0.15); border: 1px solid rgba(215,25,33,0.4); color: var(--red);
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; padding: 20px 24px; align-items: start; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .card .sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; background: var(--bg-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px;
+  }
+  .field input:focus, .field select:focus { border-color: var(--red); outline: none; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+  .btn {
+    background: var(--red); color: white; border: none; border-radius: 8px;
+    padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  }
+  .btn:hover { background: var(--red-dark); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn.ghost:hover { border-color: var(--text); }
+  .btn.small { padding: 5px 10px; font-size: 11px; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .status-pill.ok { background: rgba(16,185,129,0.15); color: var(--success); }
+  .status-pill.off { background: rgba(255,255,255,0.06); color: var(--muted); }
+  .status-pill.warn { background: rgba(245,158,11,0.15); color: var(--warning); }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .hint.warn { color: var(--warning); }
+  .hint a { color: #818cf8; text-decoration: none; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .toggle-row label { font-size: 12px; color: var(--text); }
+  .switch { position: relative; width: 38px; height: 20px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute; inset: 0; background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 999px; cursor: pointer; transition: 0.15s;
+  }
+  .switch .slider::before {
+    content: ""; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px;
+    background: var(--muted); border-radius: 50%; transition: 0.15s;
+  }
+  .switch input:checked + .slider { background: rgba(239,68,68,0.25); border-color: var(--danger); }
+  .switch input:checked + .slider::before { transform: translateX(17px); background: var(--danger); }
+
+  .target-opt {
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;
+    cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .target-opt.active { border-color: var(--red); background: rgba(215,25,33,0.08); }
+  .target-opt input { accent-color: var(--red); }
+
+  /* Capabilities browser */
+  .cat { margin-bottom: 4px; }
+  .cat-head {
+    display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+    padding: 8px 10px; border-radius: 8px; background: var(--bg-2); font-size: 12px; font-weight: 600;
+  }
+  .cat-head:hover { background: #33334d; }
+  .cat-body { display: none; padding: 6px 4px 4px 10px; }
+  .cat.open .cat-body { display: block; }
+  .cat.open .cat-chevron { transform: rotate(90deg); }
+  .cat-chevron { transition: transform 0.15s; color: var(--muted); font-size: 10px; }
+  .tool-item { font-size: 11.5px; padding: 5px 6px; border-radius: 6px; color: var(--muted); }
+  .tool-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .tool-item .name { color: #818cf8; font-family: ui-monospace, Menlo, monospace; }
+
+  /* Chat panel */
+  .chat-panel { display: flex; flex-direction: column; height: calc(100vh - 90px); }
+  .chat-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .chat-head .title { font-size: 15px; font-weight: 700; }
+  .chat-body {
+    flex: 1; overflow-y: auto; background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .msg { max-width: 78%; padding: 11px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: var(--red); color: white; border-bottom-right-radius: 3px; }
+  .msg.assistant { align-self: flex-start; background: var(--bg-2); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+  .msg.system { align-self: center; color: var(--muted); font-size: 12px; background: transparent; border: 1px dashed var(--border); }
+  .tool-card {
+    align-self: flex-start; max-width: 82%; background: rgba(99,102,241,0.07); border: 1px solid rgba(99,102,241,0.25);
+    border-radius: 10px; padding: 10px 12px; font-size: 12px;
+  }
+  .tool-card .tc-head { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #a5b4fc; margin-bottom: 6px; }
+  .tool-card .tc-head .dot { width: 6px; height: 6px; border-radius: 50%; background: #818cf8; }
+  .tool-card .tc-args { font-family: ui-monospace, Menlo, monospace; color: var(--muted); font-size: 11px; margin-bottom: 6px; word-break: break-all; }
+  .tool-card .tc-result { font-family: ui-monospace, Menlo, monospace; color: var(--text); font-size: 11px; white-space: pre-wrap; max-height: 180px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 8px; }
+  .typing { align-self: flex-start; color: var(--muted); font-size: 12px; display: flex; gap: 6px; align-items: center; }
+  .typing .dots span { animation: blink 1.2s infinite; opacity: 0.2; }
+  .typing .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,80%,100%{opacity:0.2;} 40%{opacity:1;} }
+
+  .chat-input-row { display: flex; gap: 10px; margin-top: 12px; }
+  .chat-input-row textarea {
+    flex: 1; resize: none; background: var(--bg-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 11px 14px; font-size: 13.5px; font-family: inherit; height: 52px;
+  }
+  .chat-input-row textarea:focus { border-color: var(--red); outline: none; }
+  .empty-state { color: var(--muted); font-size: 13px; text-align: center; margin: auto; max-width: 480px; }
+  .empty-state .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+  .suggestion-chip {
+    border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+  }
+  .suggestion-chip:hover { border-color: var(--red); color: var(--red); }
+  .error-banner {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5;
+    border-radius: 8px; padding: 10px 12px; font-size: 12px; margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg width="34" height="30" viewBox="0 0 48 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 2L44 13V31L24 42L4 31V13L24 2Z" fill="#D71920"/>
+      <path d="M24 8L38 16V28L24 36L10 28V16L24 8Z" fill="#A0151A"/>
+      <text x="24" y="27" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="12" fill="white">AI</text>
+    </svg>
+    <h1>TrendAI Vision One — Chatbot</h1>
+  </div>
+  <span class="badge">Live MCP · Real Vision One API</span>
+</header>
+
+<div class="layout">
+  <!-- Sidebar: settings + capabilities -->
+  <div>
+    <div class="card">
+      <h2>Vision One Connection</h2>
+      <div class="sub">Kept in memory only — never written to disk.</div>
+      <div class="field">
+        <label>API Key</label>
+        <input type="password" id="v1ApiKey" placeholder="Enter your Trend Vision One API key"/>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Region</label>
+          <select id="v1Region">
+            <option value="us">US</option>
+            <option value="eu">EU</option>
+            <option value="au">AU</option>
+            <option value="jp">JP</option>
+            <option value="sg">SG</option>
+            <option value="in">IN</option>
+            <option value="mea">MEA</option>
+          </select>
+        </div>
+      </div>
+      <div class="field toggle-row">
+        <label>Write mode <span style="color:var(--muted)">(destructive tools)</span></label>
+        <label class="switch">
+          <input type="checkbox" id="v1Readonly" onchange="onReadonlyToggle()"/>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="hint warn" id="writeWarning" style="display:none">
+        ⚠️ Write mode enables real, often irreversible Vision One actions (deleting IAM accounts/API keys,
+        deleting threat intel objects, inviting accounts, etc.). Only enable this if you mean it.
+      </div>
+      <button class="btn" style="width:100%;margin-top:6px" onclick="saveV1Settings()">Save &amp; Connect</button>
+      <div class="hint" id="v1Status">Not connected.</div>
+    </div>
+
+    <div class="card">
+      <h2>Model Endpoint <span class="unit" style="color:var(--muted);font-weight:400">(OpenAI tool-calling required)</span></h2>
+      <div class="sub">The assistant needs a model that supports function/tool calling.</div>
+      <div class="target-opt" id="optOllama" onclick="setTargetType('ollama')">
+        <input type="radio" name="targetType" value="ollama" checked/> Local Ollama (bundled)
+      </div>
+      <div class="target-opt" id="optOpenai" onclick="setTargetType('openai')">
+        <input type="radio" name="targetType" value="openai"/> OpenAI-compliant endpoint
+      </div>
+
+      <div id="ollamaFields">
+        <div class="field">
+          <label>Model</label>
+          <select id="ollamaModel"></select>
+        </div>
+        <div class="hint">Smaller models (≤3B) may not reliably use tools — prefer llama3.1/llama3.2 8B+ or qwen2.5 if available.</div>
+      </div>
+
+      <div id="openaiFields" style="display:none">
+        <div class="field">
+          <label>Endpoint URL</label>
+          <input type="text" id="openaiUrl" placeholder="http://host:8000/v1"/>
+        </div>
+        <div class="field">
+          <label>API Key <span style="color:var(--muted)">(optional)</span></label>
+          <input type="password" id="openaiKey" placeholder="sk-..."/>
+        </div>
+        <div class="field">
+          <label>Model</label>
+          <div class="row">
+            <select id="openaiModel"></select>
+            <button class="btn ghost small" style="flex:0 0 auto" onclick="listTargetModels()">↻ List models</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn" style="width:100%;margin-top:6px" onclick="saveLlmSettings()">Save Model Settings</button>
+      <div class="hint" id="llmStatus">Not configured.</div>
+    </div>
+
+    <div class="card">
+      <h2>Vision One Capabilities</h2>
+      <div class="sub" id="toolsSummary">Connect to load the live tool list.</div>
+      <button class="btn ghost small" style="width:100%;margin-bottom:8px" onclick="loadTools()">↻ Refresh capabilities</button>
+      <div id="toolsList"></div>
+    </div>
+  </div>
+
+  <!-- Main: chat -->
+  <div class="chat-panel">
+    <div class="chat-head">
+      <div class="title">Ask Vision One anything</div>
+      <button class="btn ghost small" onclick="resetChat()">New chat</button>
+    </div>
+    <div id="errorBanner" class="error-banner" style="display:none"></div>
+    <div class="chat-body" id="chatBody">
+      <div class="empty-state" id="emptyState">
+        Configure your Vision One API key and LLM endpoint on the left, then ask a question.
+        <div class="suggestions">
+          <span class="suggestion-chip" onclick="sendSuggestion(this)">List the 10 most recent Workbench alerts</span>
+          <span class="suggestion-chip" onclick="sendSuggestion(this)">What endpoints have the highest risk score?</span>
+          <span class="suggestion-chip" onclick="sendSuggestion(this)">Show me connected AWS accounts</span>
+          <span class="suggestion-chip" onclick="sendSuggestion(this)">List active suspicious object indicators</span>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <textarea id="chatInput" placeholder="Ask about endpoints, alerts, cloud accounts, threat intel…" onkeydown="onInputKeydown(event)"></textarea>
+      <button class="btn" id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let llmTargetType = 'ollama';
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function loadV1Settings() {
+  const res = await fetch('/api/settings/v1');
+  const d = await res.json();
+  document.getElementById('v1Region').value = d.region;
+  document.getElementById('v1Readonly').checked = !d.readonly;
+  onReadonlyToggle();
+  document.getElementById('v1Status').textContent = d.hasApiKey
+    ? `Connected · key ${d.maskedKey} · region ${d.region.toUpperCase()} · ${d.readonly ? 'read-only' : 'WRITE MODE'}`
+    : 'Not connected.';
+}
+
+function onReadonlyToggle() {
+  const writeMode = document.getElementById('v1Readonly').checked;
+  document.getElementById('writeWarning').style.display = writeMode ? 'block' : 'none';
+}
+
+async function saveV1Settings() {
+  const body = {
+    apiKey: document.getElementById('v1ApiKey').value,
+    region: document.getElementById('v1Region').value,
+    readonly: !document.getElementById('v1Readonly').checked,
+  };
+  const res = await fetch('/api/settings/v1', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (!res.ok) { showError('Could not save Vision One settings: ' + (await res.text())); return; }
+  document.getElementById('v1ApiKey').value = '';
+  await loadV1Settings();
+  loadTools();
+}
+
+function setTargetType(t) {
+  llmTargetType = t;
+  document.getElementById('optOllama').classList.toggle('active', t === 'ollama');
+  document.getElementById('optOpenai').classList.toggle('active', t === 'openai');
+  document.getElementById('ollamaFields').style.display = t === 'ollama' ? 'block' : 'none';
+  document.getElementById('openaiFields').style.display = t === 'openai' ? 'block' : 'none';
+  document.querySelector(`input[name=targetType][value=${t}]`).checked = true;
+}
+
+async function loadOllamaModels() {
+  try {
+    const res = await fetch('/api/llm/local-models');
+    const d = await res.json();
+    const sel = document.getElementById('ollamaModel');
+    sel.innerHTML = (d.models || []).map(m => `<option value="${esc(m.name)}">${esc(m.name)} (${esc(m.parameter_size)})</option>`).join('');
+  } catch (_) {}
+}
+
+async function listTargetModels() {
+  const url = document.getElementById('openaiUrl').value;
+  const key = document.getElementById('openaiKey').value;
+  const sel = document.getElementById('openaiModel');
+  sel.innerHTML = '<option>Loading…</option>';
+  try {
+    const res = await fetch('/api/llm/target-models', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({endpointUrl: url, apiKey: key}) });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (_) { showError('Endpoint returned a non-JSON response.'); sel.innerHTML=''; return; }
+    if (!res.ok) { showError(data.detail || 'Could not list models.'); sel.innerHTML=''; return; }
+    sel.innerHTML = (data.models || []).map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  } catch (e) { showError('Could not reach the endpoint: ' + e); sel.innerHTML=''; }
+}
+
+async function loadLlmSettings() {
+  const res = await fetch('/api/settings/llm');
+  const d = await res.json();
+  setTargetType(d.targetType);
+  document.getElementById('openaiUrl').value = d.endpointUrl || '';
+  document.getElementById('llmStatus').textContent = d.targetType === 'ollama'
+    ? `Local Ollama · model: ${d.model || '(default)'}`
+    : (d.endpointUrl ? `${d.endpointUrl} · model: ${d.model || '(none selected)'}` : 'Not configured.');
+}
+
+async function saveLlmSettings() {
+  const model = llmTargetType === 'ollama' ? document.getElementById('ollamaModel').value : document.getElementById('openaiModel').value;
+  const body = {
+    targetType: llmTargetType,
+    endpointUrl: document.getElementById('openaiUrl').value,
+    apiKey: document.getElementById('openaiKey').value,
+    model: model,
+  };
+  const res = await fetch('/api/settings/llm', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (!res.ok) { showError('Could not save model settings: ' + (await res.text())); return; }
+  document.getElementById('openaiKey').value = '';
+  await loadLlmSettings();
+}
+
+async function loadTools() {
+  const box = document.getElementById('toolsList');
+  const summary = document.getElementById('toolsSummary');
+  summary.textContent = 'Loading…';
+  try {
+    const res = await fetch('/api/tools');
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (_) { summary.textContent = 'Could not parse tool list.'; return; }
+    if (!res.ok) { summary.textContent = data.detail || 'Could not load tools.'; box.innerHTML=''; return; }
+    summary.textContent = `${data.total} tools available · ${data.readonly ? 'read-only' : 'WRITE MODE'}`;
+    const cats = Object.keys(data.categories).sort();
+    box.innerHTML = cats.map(cat => `
+      <div class="cat" data-cat="${esc(cat)}">
+        <div class="cat-head" onclick="toggleCat(this)">
+          <span>${esc(cat)} <span style="color:var(--muted);font-weight:400">(${data.categories[cat].length})</span></span>
+          <span class="cat-chevron">▶</span>
+        </div>
+        <div class="cat-body">
+          ${data.categories[cat].map(t => `
+            <div class="tool-item" title="${esc(t.description)}">
+              <div class="name">${esc(t.name)}</div>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    summary.textContent = 'Could not reach the server: ' + e;
+  }
+}
+function toggleCat(el) { el.parentElement.classList.toggle('open'); }
+
+function showError(msg) {
+  const el = document.getElementById('errorBanner');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function clearError() { document.getElementById('errorBanner').style.display = 'none'; }
+
+function onInputKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function sendSuggestion(el) {
+  document.getElementById('chatInput').value = el.textContent;
+  sendMessage();
+}
+
+function appendMsg(role, content) {
+  document.getElementById('emptyState')?.remove();
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = content;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  return div;
+}
+
+function appendToolCards(toolCalls) {
+  const body = document.getElementById('chatBody');
+  for (const tc of (toolCalls || [])) {
+    const div = document.createElement('div');
+    div.className = 'tool-card';
+    div.innerHTML = `
+      <div class="tc-head"><span class="dot"></span> Vision One · ${esc(tc.name)}</div>
+      <div class="tc-args">${esc(JSON.stringify(tc.arguments || {}))}</div>
+      <div class="tc-result">${esc(tc.result || '')}</div>
+    `;
+    body.appendChild(div);
+  }
+  body.scrollTop = body.scrollHeight;
+}
+
+function appendTyping() {
+  document.getElementById('emptyState')?.remove();
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = 'typingIndicator';
+  div.innerHTML = 'Working <span class="dots"><span>●</span><span>●</span><span>●</span></span>';
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+function removeTyping() { document.getElementById('typingIndicator')?.remove(); }
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  clearError();
+  appendMsg('user', msg);
+  input.value = '';
+  document.getElementById('sendBtn').disabled = true;
+  appendTyping();
+  try {
+    const res = await fetch('/api/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({message: msg}) });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch (_) { removeTyping(); showError('Server returned a non-JSON response.'); return; }
+    removeTyping();
+    if (!res.ok) { showError(data.detail || 'Something went wrong.'); return; }
+    appendToolCards(data.toolCalls);
+    appendMsg('assistant', data.reply);
+  } catch (e) {
+    removeTyping();
+    showError('Could not reach the server: ' + e);
+  } finally {
+    document.getElementById('sendBtn').disabled = false;
+  }
+}
+
+async function resetChat() {
+  await fetch('/api/chat/reset', { method: 'POST' });
+  document.getElementById('chatBody').innerHTML = document.getElementById('emptyState')?.outerHTML || '';
+  location.reload();
+}
+
+(async function init() {
+  await loadV1Settings();
+  await loadLlmSettings();
+  await loadOllamaModels();
+  loadTools();
+})();
+</script>
+</body>
+</html>

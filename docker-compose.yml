@@ -13,6 +13,7 @@
 #   http://<host>:8088/siemcalc  Agentic SIEM Calculator    (auth required)
 #   http://<host>:8088/workload  Server & Workload Protection (auth required)
 #   http://<host>:8088/aiscanner AI Scanner                   (auth required)
+#   http://<host>:8088/v1chat    Vision One Chatbot            (auth required)
 #
 # The demo containers are NOT published on the host — they are only reachable
 # on the internal compose network via the authenticated portal.
@@ -40,6 +41,7 @@ services:
       - siem-calc
       - workload-protection
       - ai-scanner
+      - v1-chatbot
     restart: unless-stopped
 
   # --- V1 File Security Scanner (Go) — internal only ----------------------
@@ -127,6 +129,16 @@ services:
     build:
       context: ./tools/ai-scanner
     container_name: trendai-ai-scanner
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  # --- Vision One Chatbot (FastAPI + the real trendai-vision-one-mcp-server
+  # Go binary, built from source at image-build time) — internal only -------
+  v1-chatbot:
+    build:
+      context: ./tools/v1-chatbot
+    container_name: trendai-v1-chatbot
     depends_on:
       - ollama
     restart: unless-stopped

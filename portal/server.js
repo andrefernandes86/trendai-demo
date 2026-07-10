@@ -36,6 +36,7 @@ const DEMOS = {
   siemcalc:  { target: 'http://siem-calc:80',             secure: true },
   workload:  { target: 'http://workload-protection:8000', secure: true },
   aiscanner: { target: 'http://ai-scanner:8000',          secure: true },
+  v1chat:    { target: 'http://v1-chatbot:8000',          secure: true },
 };
 
 // ---------------------------------------------------------------------------
