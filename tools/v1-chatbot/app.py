@@ -32,6 +32,7 @@ Architecture (mirrors the AI Scanner tool):
 import asyncio
 import json
 import os
+import re
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -310,6 +311,57 @@ def system_prompt() -> str:
     )
 
 
+# Some models (observed with Qwen served over vLLM without
+# --enable-auto-tool-choice/--tool-call-parser configured for that model's
+# chat template) emit tool-call requests as plain text inside the message
+# `content` — typically Hermes/Qwen-style <tool_call>{"name":...,
+# "arguments":{...}}</tool_call> — instead of the API's structured
+# `tool_calls` field. Left unhandled, that looks exactly like a hallucinated
+# non-answer (no structured tool_calls => our "ungrounded" guardrail fires)
+# even though the model was actually trying to do the right thing. This is a
+# best-effort recovery path: find such blocks, tolerate the malformed JSON
+# these models often produce (missing braces, "<name>:" instead of
+# "\"name\":", extra trailing braces), and execute them exactly like a
+# normal structured tool call if we can parse a name out of them.
+RAW_TOOL_CALL_RE = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.S | re.I)
+
+
+def extract_raw_tool_calls(text: str) -> list[dict]:
+    calls = []
+    for block in RAW_TOOL_CALL_RE.findall(text or ""):
+        block = block.strip()
+        parsed = None
+        for candidate in (block, block if block.startswith("{") else "{" + block):
+            try:
+                parsed = json.loads(candidate)
+                break
+            except json.JSONDecodeError:
+                continue
+        if isinstance(parsed, dict) and parsed.get("name"):
+            calls.append({"name": parsed["name"], "arguments": parsed.get("arguments") or {}})
+            continue
+        # Malformed JSON — fall back to pulling out the name and then
+        # trimming the arguments blob from the end until it parses, which
+        # recovers from models that double up a closing brace.
+        name_m = re.search(r'[<"]?\s*name\s*[>"]?\s*:\s*"([^"]+)"', block)
+        if not name_m:
+            continue
+        args = {}
+        args_m = re.search(r'"arguments"\s*:\s*(\{.*)', block, re.S)
+        if args_m:
+            args_text = args_m.group(1)
+            for end in range(len(args_text), 0, -1):
+                if args_text[end - 1] != "}":
+                    continue
+                try:
+                    args = json.loads(args_text[:end])
+                    break
+                except json.JSONDecodeError:
+                    continue
+        calls.append({"name": name_m.group(1), "arguments": args})
+    return calls
+
+
 def mcp_tools_to_openai(tools: list[dict]) -> list[dict]:
     out = []
     for t in tools:
@@ -398,21 +450,52 @@ async def api_chat(body: dict):
                         choice = choices[0].get("message") or {}
                         tool_calls = choice.get("tool_calls") or []
 
-                        if not tool_calls:
-                            final_text = choice.get("content") or "(empty response)"
-                            CHAT_HISTORY.append({"role": "assistant", "content": final_text})
-                            # No Vision One tool was called anywhere in this turn, so nothing in this
-                            # reply is verified tenant data — surface that plainly regardless of what
-                            # the model's own text claims, since smaller/less-tuned models will
-                            # sometimes fabricate a plausible-sounding answer instead of admitting no
-                            # tool matched the question.
-                            return {
-                                "reply": final_text,
-                                "toolCalls": tool_call_log,
-                                "grounded": bool(tool_call_log),
-                            }
+                        if tool_calls:
+                            messages.append(choice)
+                        else:
+                            raw_content = choice.get("content") or ""
+                            recovered = extract_raw_tool_calls(raw_content)
+                            if recovered:
+                                # The model wanted to call a tool but the endpoint returned it as
+                                # plain text instead of a structured tool_calls entry — recover it
+                                # and run it exactly like a normal tool call (see
+                                # extract_raw_tool_calls' docstring for why this happens).
+                                tool_calls = [
+                                    {
+                                        "id": f"recovered_{i}",
+                                        "type": "function",
+                                        "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])},
+                                    }
+                                    for i, c in enumerate(recovered)
+                                ]
+                                messages.append({"role": "assistant", "content": None, "tool_calls": tool_calls})
+                            elif "<tool_call>" in raw_content.lower():
+                                # The tag is there but nothing usable could be parsed out of it —
+                                # this is a server/model config problem, not a hallucination, so
+                                # say so plainly instead of showing the garbled raw text.
+                                diag = (
+                                    "The model tried to call a Vision One tool but sent it in a format "
+                                    "I couldn't parse (raw text instead of a structured tool call). This "
+                                    "usually means the inference server needs tool-call parsing enabled "
+                                    "for this model — for vLLM, that's `--enable-auto-tool-choice "
+                                    "--tool-call-parser <parser>` (e.g. `hermes` for Qwen models)."
+                                )
+                                CHAT_HISTORY.append({"role": "assistant", "content": diag})
+                                return {"reply": diag, "toolCalls": tool_call_log, "grounded": bool(tool_call_log)}
+                            else:
+                                final_text = raw_content or "(empty response)"
+                                CHAT_HISTORY.append({"role": "assistant", "content": final_text})
+                                # No Vision One tool was called anywhere in this turn, so nothing in
+                                # this reply is verified tenant data — surface that plainly regardless
+                                # of what the model's own text claims, since smaller/less-tuned models
+                                # will sometimes fabricate a plausible-sounding answer instead of
+                                # admitting no tool matched the question.
+                                return {
+                                    "reply": final_text,
+                                    "toolCalls": tool_call_log,
+                                    "grounded": bool(tool_call_log),
+                                }
 
-                        messages.append(choice)
                         for tc in tool_calls:
                             fn = tc.get("function") or {}
                             name = fn.get("name", "")
