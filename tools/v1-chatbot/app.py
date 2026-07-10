@@ -129,7 +129,11 @@ async def save_llm_settings(body: dict):
     if target_type not in ("ollama", "openai"):
         raise HTTPException(400, "targetType must be 'ollama' or 'openai'.")
     LLM_SETTINGS["targetType"] = target_type
-    LLM_SETTINGS["endpointUrl"] = str(body.get("endpointUrl", "")).strip()
+    # Normalize at save time (strip trailing slash / an accidentally-pasted
+    # "/models" suffix) so both the stored value and what gets echoed back
+    # to the UI are always clean, not just what llm_chat_completion() builds
+    # internally on each request.
+    LLM_SETTINGS["endpointUrl"] = normalize_openai_base(str(body.get("endpointUrl", "")))
     api_key = str(body.get("apiKey", "")).strip()
     if api_key:
         LLM_SETTINGS["apiKey"] = api_key
@@ -429,6 +433,124 @@ async def llm_chat_completion(messages: list[dict], tools: list[dict]) -> dict:
         raise HTTPException(502, "LLM endpoint did not return valid JSON.")
 
 
+TOOL_CALL_TIMEOUT_SECONDS = 60
+CHAT_TURN_TIMEOUT_SECONDS = 240
+
+
+async def run_agent_turn(messages: list[dict], tool_call_log: list[dict]) -> dict:
+    """The actual tool-calling agent loop, split out from api_chat so the
+    whole thing can be wrapped in a hard timeout (see api_chat below) — the
+    Go MCP binary's own HTTP client has no timeout at all, so a stalled
+    Vision One API call could otherwise hang this coroutine (and the chat
+    lock it holds) forever, permanently blocking every future message."""
+    params = v1_mcp_params()
+    try:
+        async with stdio_client(params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                tools_resp = await session.list_tools()
+                mcp_tools = [
+                    {"name": t.name, "description": t.description or "", "inputSchema": t.inputSchema or {}}
+                    for t in tools_resp.tools
+                ]
+                openai_tools = mcp_tools_to_openai(mcp_tools)
+
+                for _ in range(MAX_TOOL_ROUNDS):
+                    completion = await llm_chat_completion(messages, openai_tools)
+                    choices = completion.get("choices") or []
+                    if not choices:
+                        raise HTTPException(502, "LLM endpoint returned no choices.")
+                    choice = choices[0].get("message") or {}
+                    tool_calls = choice.get("tool_calls") or []
+
+                    if tool_calls:
+                        messages.append(choice)
+                    else:
+                        raw_content = choice.get("content") or ""
+                        recovered = extract_raw_tool_calls(raw_content)
+                        if recovered:
+                            # The model wanted to call a tool but the endpoint returned it as
+                            # plain text instead of a structured tool_calls entry — recover it
+                            # and run it exactly like a normal tool call (see
+                            # extract_raw_tool_calls' docstring for why this happens).
+                            tool_calls = [
+                                {
+                                    "id": f"recovered_{i}",
+                                    "type": "function",
+                                    "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])},
+                                }
+                                for i, c in enumerate(recovered)
+                            ]
+                            messages.append({"role": "assistant", "content": None, "tool_calls": tool_calls})
+                        elif "<tool_call>" in raw_content.lower():
+                            # The tag is there but nothing usable could be parsed out of it —
+                            # this is a server/model config problem, not a hallucination, so
+                            # say so plainly instead of showing the garbled raw text.
+                            diag = (
+                                "The model tried to call a Vision One tool but sent it in a format "
+                                "I couldn't parse (raw text instead of a structured tool call). This "
+                                "usually means the inference server needs tool-call parsing enabled "
+                                "for this model — for vLLM, that's `--enable-auto-tool-choice "
+                                "--tool-call-parser <parser>` (e.g. `hermes` for Qwen models)."
+                            )
+                            CHAT_HISTORY.append({"role": "assistant", "content": diag})
+                            return {"reply": diag, "toolCalls": tool_call_log, "grounded": bool(tool_call_log)}
+                        else:
+                            final_text = raw_content or "(empty response)"
+                            CHAT_HISTORY.append({"role": "assistant", "content": final_text})
+                            # No Vision One tool was called anywhere in this turn, so nothing in
+                            # this reply is verified tenant data — surface that plainly regardless
+                            # of what the model's own text claims, since smaller/less-tuned models
+                            # will sometimes fabricate a plausible-sounding answer instead of
+                            # admitting no tool matched the question.
+                            return {
+                                "reply": final_text,
+                                "toolCalls": tool_call_log,
+                                "grounded": bool(tool_call_log),
+                            }
+
+                    for tc in tool_calls:
+                        fn = tc.get("function") or {}
+                        name = fn.get("name", "")
+                        try:
+                            args = json.loads(fn.get("arguments") or "{}")
+                        except json.JSONDecodeError:
+                            args = {}
+                        try:
+                            result = await asyncio.wait_for(
+                                session.call_tool(name, args), timeout=TOOL_CALL_TIMEOUT_SECONDS
+                            )
+                            parts = [getattr(c, "text", "") for c in (result.content or [])]
+                            result_text = "\n".join(p for p in parts if p) or "(no content returned)"
+                            if getattr(result, "isError", False):
+                                result_text = f"ERROR: {result_text}"
+                        except asyncio.TimeoutError:
+                            result_text = (
+                                f"ERROR calling {name}: timed out after {TOOL_CALL_TIMEOUT_SECONDS}s "
+                                "waiting for the Vision One API — the tenant/region may be slow or "
+                                "unreachable right now."
+                            )
+                        except Exception as e:
+                            result_text = f"ERROR calling {name}: {e}"
+                        tool_call_log.append({"name": name, "arguments": args, "result": result_text[:4000]})
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tc.get("id", ""),
+                            "content": result_text[:8000],
+                        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"Vision One MCP server error: {e}")
+
+    fallback = (
+        "I made several Vision One tool calls but didn't reach a final answer within the step limit. "
+        "Here's what I found:\n\n" + "\n".join(f"- {t['name']}: {t['result'][:200]}" for t in tool_call_log)
+    )
+    CHAT_HISTORY.append({"role": "assistant", "content": fallback})
+    return {"reply": fallback, "toolCalls": tool_call_log, "grounded": bool(tool_call_log)}
+
+
 @app.post("/api/chat")
 async def api_chat(body: dict):
     user_msg = str(body.get("message", "")).strip()
@@ -448,105 +570,17 @@ async def api_chat(body: dict):
             {"role": m["role"], "content": m["content"]} for m in CHAT_HISTORY
         ]
         tool_call_log: list[dict] = []
-
-        params = v1_mcp_params()
         try:
-            async with stdio_client(params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    tools_resp = await session.list_tools()
-                    mcp_tools = [
-                        {"name": t.name, "description": t.description or "", "inputSchema": t.inputSchema or {}}
-                        for t in tools_resp.tools
-                    ]
-                    openai_tools = mcp_tools_to_openai(mcp_tools)
-
-                    for _ in range(MAX_TOOL_ROUNDS):
-                        completion = await llm_chat_completion(messages, openai_tools)
-                        choices = completion.get("choices") or []
-                        if not choices:
-                            raise HTTPException(502, "LLM endpoint returned no choices.")
-                        choice = choices[0].get("message") or {}
-                        tool_calls = choice.get("tool_calls") or []
-
-                        if tool_calls:
-                            messages.append(choice)
-                        else:
-                            raw_content = choice.get("content") or ""
-                            recovered = extract_raw_tool_calls(raw_content)
-                            if recovered:
-                                # The model wanted to call a tool but the endpoint returned it as
-                                # plain text instead of a structured tool_calls entry — recover it
-                                # and run it exactly like a normal tool call (see
-                                # extract_raw_tool_calls' docstring for why this happens).
-                                tool_calls = [
-                                    {
-                                        "id": f"recovered_{i}",
-                                        "type": "function",
-                                        "function": {"name": c["name"], "arguments": json.dumps(c["arguments"])},
-                                    }
-                                    for i, c in enumerate(recovered)
-                                ]
-                                messages.append({"role": "assistant", "content": None, "tool_calls": tool_calls})
-                            elif "<tool_call>" in raw_content.lower():
-                                # The tag is there but nothing usable could be parsed out of it —
-                                # this is a server/model config problem, not a hallucination, so
-                                # say so plainly instead of showing the garbled raw text.
-                                diag = (
-                                    "The model tried to call a Vision One tool but sent it in a format "
-                                    "I couldn't parse (raw text instead of a structured tool call). This "
-                                    "usually means the inference server needs tool-call parsing enabled "
-                                    "for this model — for vLLM, that's `--enable-auto-tool-choice "
-                                    "--tool-call-parser <parser>` (e.g. `hermes` for Qwen models)."
-                                )
-                                CHAT_HISTORY.append({"role": "assistant", "content": diag})
-                                return {"reply": diag, "toolCalls": tool_call_log, "grounded": bool(tool_call_log)}
-                            else:
-                                final_text = raw_content or "(empty response)"
-                                CHAT_HISTORY.append({"role": "assistant", "content": final_text})
-                                # No Vision One tool was called anywhere in this turn, so nothing in
-                                # this reply is verified tenant data — surface that plainly regardless
-                                # of what the model's own text claims, since smaller/less-tuned models
-                                # will sometimes fabricate a plausible-sounding answer instead of
-                                # admitting no tool matched the question.
-                                return {
-                                    "reply": final_text,
-                                    "toolCalls": tool_call_log,
-                                    "grounded": bool(tool_call_log),
-                                }
-
-                        for tc in tool_calls:
-                            fn = tc.get("function") or {}
-                            name = fn.get("name", "")
-                            try:
-                                args = json.loads(fn.get("arguments") or "{}")
-                            except json.JSONDecodeError:
-                                args = {}
-                            try:
-                                result = await session.call_tool(name, args)
-                                parts = [getattr(c, "text", "") for c in (result.content or [])]
-                                result_text = "\n".join(p for p in parts if p) or "(no content returned)"
-                                if getattr(result, "isError", False):
-                                    result_text = f"ERROR: {result_text}"
-                            except Exception as e:
-                                result_text = f"ERROR calling {name}: {e}"
-                            tool_call_log.append({"name": name, "arguments": args, "result": result_text[:4000]})
-                            messages.append({
-                                "role": "tool",
-                                "tool_call_id": tc.get("id", ""),
-                                "content": result_text[:8000],
-                            })
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(502, f"Vision One MCP server error: {e}")
-
-        fallback = (
-            "I made several Vision One tool calls but didn't reach a final answer within the step limit. "
-            "Here's what I found:\n\n" + "\n".join(f"- {t['name']}: {t['result'][:200]}" for t in tool_call_log)
-        )
-        CHAT_HISTORY.append({"role": "assistant", "content": fallback})
-        return {"reply": fallback, "toolCalls": tool_call_log, "grounded": bool(tool_call_log)}
+            return await asyncio.wait_for(
+                run_agent_turn(messages, tool_call_log), timeout=CHAT_TURN_TIMEOUT_SECONDS
+            )
+        except asyncio.TimeoutError:
+            timeout_msg = (
+                f"This turn timed out after {CHAT_TURN_TIMEOUT_SECONDS}s (Vision One or the LLM endpoint "
+                "didn't respond in time). Nothing further is running — try again."
+            )
+            CHAT_HISTORY.append({"role": "assistant", "content": timeout_msg})
+            raise HTTPException(504, timeout_msg)
 
 
 @app.get("/api/chat/history")
